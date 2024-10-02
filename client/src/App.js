@@ -1,42 +1,23 @@
-
-import React, { useState, useRef } from 'react';
-import './App.css';
-import Button from './Components/Button'; // Import Button from the Button.jsx file
+// src/App.js
+import React, { useState } from 'react';
+import WebcamCapture from './Components/WebcamCapture';
+import ToggleButton from './Components/ToggleButton';
 
 function App() {
-  const [stream, setStream] = useState(null);
-  const videoRef = useRef(null);
-
-  const startCamera = async () => {
-    try {
-      const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
-      setStream(videoStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = videoStream;
-      }
-    } catch (error) {
-      console.error("Error accessing webcam:", error);
-    }
-  };
-
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-  };
+  const [showWebcam, setShowWebcam] = useState(false);
 
   return (
-    <div className="container">
-      <h1>Cheat Detection System</h1>
-
-      {!stream ? (
-        <Button label="Load Camera" onClick={startCamera} />
-      ) : (
-        <Button label="Turn Off Camera" onClick={stopCamera} />
+    <div className="App min-h-screen bg-gray-100 flex flex-col items-center justify-center">
+      <h1 className="text-4xl font-bold mb-6 text-gray-800">Webcam App</h1>
+      <ToggleButton
+        showWebcam={showWebcam}
+        onClick={() => setShowWebcam(prev => !prev)}
+      />
+      {showWebcam && (
+        <div className="mt-6">
+          <WebcamCapture />
+        </div>
       )}
-
-      <video width="640" height="480" autoPlay ref={videoRef}></video>
     </div>
   );
 }

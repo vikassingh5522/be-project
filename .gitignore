@@ -5,6 +5,8 @@ node_modules
 venv
 /.pnp
 .pnp.js
+info.log
+frame.jpg
 
 # testing
 /coverage
