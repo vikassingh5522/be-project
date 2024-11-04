@@ -5,6 +5,7 @@ import base64
 from io import BytesIO
 from PIL import Image
 import os
+from urllib.parse import quote as url_quote
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
