@@ -4,6 +4,7 @@ import Webcam from 'react-webcam';
 import axios from 'axios';
 
 const WebcamCapture = () => {
+  
   const webcamRef = useRef(null);
 
   const sendFrameToBackend = useCallback(() => {
