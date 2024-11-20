@@ -5,8 +5,12 @@ node_modules
 venv
 /.pnp
 .pnp.js
+
+# caching
 info.log
 frame.jpg
+__pycache__
+*yolov8n*
 
 # testing
 /coverage
