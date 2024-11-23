@@ -1,149 +1,215 @@
-
 import React, { useState, useEffect } from 'react';
-import WebcamCapture from './Components/WebcamCapture'; // Webcam component
+import useFullscreenManager from './hooks/useFullscreenManager';
 import { useTabFocusMonitor } from './hooks/useTabFocusMonitor';
 import { useKeyLogger } from './hooks/useKeyLogger';
-import ToggleButton from './Components/ToggleButton';
-import useFullscreenExitCounter from './hooks/useFullscreenExitCounter'; // Custom hook for counting fullscreen exits
+import Header from './Components/Header';
+import StartExamButton from './Components/StartExamButton';
+import ExamContainer from './Components/ExamContainer';
+import KeyLogs from './Components/KeyLogs';
+import FullscreenPrompt from './Components/FullscreenPrompt';
+import ToggleableWebcam from './Components/ToggleableWebcam';
+import CodeButton from './Components/CodeButton';
+import CodeEditor from './Components/CodeEditor';
+import Timer from './Components/Timer';
 
 function App() {
-    const [isFullscreen, setIsFullscreen] = useState(false);
-    const [showWebcam, setShowWebcam] = useState(true); // Controls UI visibility only
+    const { isFullscreen, goFullscreen, exitCount } = useFullscreenManager();
     const [examStarted, setExamStarted] = useState(false);
     const [isLoggingActive, setIsLoggingActive] = useState(false);
     const [keyLogs, setKeyLogs] = useState('');
+    const [showWebcam, setShowWebcam] = useState(true);
     const [isFullscreenPromptVisible, setIsFullscreenPromptVisible] = useState(false);
+    const [isCodeEditorVisible, setIsCodeEditorVisible] = useState(false);
+    const [file, setFile] = useState(null);
+    const [questions, setQuestions] = useState([]);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [selectedAnswers, setSelectedAnswers] = useState({});
+    const [error, setError] = useState('');
+    const [examDuration, setExamDuration] = useState(0); // Exam duration in minutes
+    const [isDurationInputVisible, setIsDurationInputVisible] = useState(false); // Toggle duration input visibility
+    const [timeLeft, setTimeLeft] = useState(null); // Time left in seconds
+
 
     useTabFocusMonitor();
     useKeyLogger(isLoggingActive, setKeyLogs);
 
-    const exitCount = useFullscreenExitCounter();
-
-    const goFullscreen = async () => {
-        try {
-            if (document.documentElement.requestFullscreen) {
-                await document.documentElement.requestFullscreen();
-            } else if (document.documentElement.mozRequestFullScreen) {
-                await document.documentElement.mozRequestFullScreen();
-            } else if (document.documentElement.webkitRequestFullscreen) {
-                await document.documentElement.webkitRequestFullscreen();
-            } else if (document.documentElement.msRequestFullscreen) {
-                await document.documentElement.msRequestFullscreen();
-            }
-        } catch (error) {
-            console.error("Fullscreen request failed: ", error);
-        }
-    };
-
-    useEffect(() => {
-        const handleFullscreenChange = () => {
-            const isFullScreen = !!document.fullscreenElement;
-            setIsFullscreen(isFullScreen);
-        };
-
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-
-        return () => {
-            document.removeEventListener('fullscreenchange', handleFullscreenChange);
-            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-            document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
-            document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
-        };
-    }, []);
-
     const startExam = async () => {
-        await goFullscreen();
-        setIsFullscreen(true);
+        localStorage.setItem('exitCount', 0);
         setExamStarted(true);
+        await goFullscreen();
         setIsLoggingActive(true);
     };
 
     const handleReenterFullscreen = async () => {
         await goFullscreen();
-        setIsFullscreen(true);
-        setIsFullscreenPromptVisible(false);
     };
 
     useEffect(() => {
-        if (!isFullscreen && examStarted) {
-            setIsFullscreenPromptVisible(true);
-        } else {
-            setIsFullscreenPromptVisible(false);
-        }
+        const disableF11 = (event) => {
+            if (event.key === 'F11') {
+                event.preventDefault();
+                console.log("F11 fullscreen shortcut is disabled.");
+            }
+        };
+
+        const handleWindowsKey = (event) => {
+            if (event.key === 'Meta') {
+                event.preventDefault();
+                console.warn('Windows key detected. Taskbar interactions are not allowed.');
+                alert('Windows key detected! Please stay in fullscreen mode.');
+            }
+        };
+
+        window.addEventListener('keydown', disableF11);
+        window.addEventListener('keydown', handleWindowsKey);
+
+        return () => {
+            window.removeEventListener('keydown', disableF11);
+            window.removeEventListener('keydown', handleWindowsKey);
+        };
+    }, []);
+
+    useEffect(() => {
+        setIsFullscreenPromptVisible(!isFullscreen && examStarted);
     }, [isFullscreen, examStarted]);
+
+    const handleFileChange = (e) => {
+        setFile(e.target.files[0]);
+    };
+
+    const uploadFile = async () => {
+        if (!file) {
+            setError('Please select a file.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('http://localhost:5000/upload-file', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                setQuestions(data.questions);
+                setError('');
+                setIsDurationInputVisible(true); // Show duration input after successful file upload
+            } else {
+                setError(data.message);
+            }
+        } catch (err) {
+            console.error('Error uploading file:', err);
+            setError('An error occurred while uploading the file.');
+        }
+    };
+
+    const handleOptionChange = (e) => {
+        setSelectedAnswers({
+            ...selectedAnswers,
+            [currentQuestionIndex]: e.target.value,
+        });
+    };
+
+    const handleNext = () => {
+        setCurrentQuestionIndex((prev) => prev + 1);
+    };
+
+    const handlePrevious = () => {
+        setCurrentQuestionIndex((prev) => prev - 1);
+    };
+
+    const handleSubmit = () => {
+        alert('Exam submitted successfully!');
+        console.log('Selected Answers:', selectedAnswers);
+        setExamStarted(false); // Stop the timer
+    };
+
+    const handleTimeUp = () => {
+        alert('Time is up! The exam will now be submitted.');
+        handleSubmit();
+    };
 
     return (
         <div className="App min-h-screen bg-gray-100 flex flex-col items-center justify-center">
             <h1 className="text-4xl font-bold mb-6 text-gray-800">Online Exam</h1>
 
-            <div className="absolute top-4 right-4 bg-gray-800 text-white p-2 rounded">
-                Fullscreen Exits: {exitCount}
-            </div>
+            {examStarted && <Header exitCount={exitCount} timeLeft={timeLeft} />}
+ {/* Show header only when exam is started */}
 
-            {!examStarted && !isFullscreen && (
-                <button
-                    onClick={startExam}
-                    className="px-4 py-2 mb-4 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                    Start Exam (Fullscreen)
-                </button>
-            )}
-
-            {examStarted && (
-                <div className="exam-container p-6 bg-white rounded shadow-md w-3/4">
-                    <h2 className="text-2xl font-semibold mb-4 text-gray-800">Exam Question</h2>
-                    <p className="mb-4">What is the capital of France?</p>
-                    <div className="options mb-6">
-                        <label className="block mb-2">
-                            <input type="radio" name="answer" value="A" /> A) Berlin
-                        </label>
-                        <label className="block mb-2">
-                            <input type="radio" name="answer" value="B" /> B) Madrid
-                        </label>
-                        <label className="block mb-2">
-                            <input type="radio" name="answer" value="C" /> C) Paris
-                        </label>
-                        <label className="block mb-2">
-                            <input type="radio" name="answer" value="D" /> D) Rome
-                        </label>
-                    </div>
-                    <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                        Submit Answer
-                    </button>
-                </div>
-            )}
-
-            <ToggleButton
-                showWebcam={showWebcam}
-                onClick={() => setShowWebcam((prev) => !prev)}
-            />
-            <div className="webcam-container mt-6" style={{ visibility: showWebcam ? 'visible' : 'hidden' }}>
-                <WebcamCapture />
-            </div>
-
-            {examStarted && (
-                <div className="keylog-container mt-4 w-full">
-                    <h3 className="text-lg font-medium mb-2">Key Logs</h3>
-                    <textarea
-                        className="w-full h-48 p-2 border border-gray-300 rounded"
-                        value={keyLogs}
-                        readOnly
-                    />
-                </div>
-            )}
-
-            {isFullscreenPromptVisible && (
-                <div className="mt-4 text-center">
+            {!examStarted && (
+                <div className="file-upload-section mb-4">
+                    <input type="file" onChange={handleFileChange} />
                     <button
-                        onClick={handleReenterFullscreen}
-                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                        onClick={uploadFile}
+                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-4"
                     >
-                        Please re-enter Fullscreen
+                        Upload File
                     </button>
+                    {error && <p className="text-red-500">{error}</p>}
                 </div>
+            )}
+
+            {!examStarted && isDurationInputVisible && (
+                <div className="duration-input-section mt-4">
+                    <label className="block text-sm font-medium mb-2">
+                        Enter exam duration (in minutes):
+                    </label>
+                    <input
+                        type="number"
+                        min="1"
+                        onChange={(e) => setExamDuration(Number(e.target.value))}
+                        className="border rounded px-4 py-2 w-full"
+                    />
+                    {examDuration > 0 && (
+                        <StartExamButton onClick={startExam} />
+                    )}
+                </div>
+            )}
+
+            {examStarted && (
+                <>
+                    <Timer
+                        initialMinutes={examDuration}
+                        isExamActive={examStarted}
+                        onTimeUp={handleTimeUp}
+                        onExamSubmit={!examStarted}
+                        setTimeLeft={setTimeLeft}
+                    />
+                    <ExamContainer
+                        questions={questions}
+                        currentQuestionIndex={currentQuestionIndex}
+                        handleOptionChange={handleOptionChange}
+                        selectedAnswers={selectedAnswers}
+                        onNext={handleNext}
+                        onPrevious={handlePrevious}
+                        onSubmit={handleSubmit}
+                    />
+                </>
+            )}
+
+            <ToggleableWebcam
+                showWebcam={showWebcam}
+                onToggle={() => setShowWebcam((prev) => !prev)}
+            />
+
+            {examStarted && <KeyLogs keyLogs={keyLogs} />}
+
+            {isFullscreenPromptVisible && <FullscreenPrompt onReenter={handleReenterFullscreen} />}
+
+            {examStarted && (
+                <CodeButton
+                    onClick={() => setIsCodeEditorVisible(true)}
+                />
+            )}
+
+            {isCodeEditorVisible && (
+                <CodeEditor
+                    onClose={() => setIsCodeEditorVisible(false)}
+                    goFullscreen={goFullscreen}
+                />
             )}
         </div>
     );

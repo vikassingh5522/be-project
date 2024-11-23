@@ -29,13 +29,13 @@ const WebcamCapture = () => {
 
   return (
     <div>
-      <h1>Webcam Capture</h1>
+      <h1 align="center">Webcam Capture</h1>
       <Webcam
         audio={false}
         ref={webcamRef}
         screenshotFormat="image/jpeg"
-        width={320}
-        height={240}
+        width={416}
+        height={416}
       />
     </div>
   );
