@@ -1,11 +1,11 @@
 # app.py
 from flask import Flask, request, jsonify
-from flask_cors import CORS 
+from flask_cors import CORS
 import base64
 from io import BytesIO
 from PIL import Image
 import os
-from urllib.parse import quote as url_quote
+from image_processing.objDec import detect
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
@@ -19,8 +19,9 @@ def upload_frame():
         image_data = image_data.split(",")[1]
         image = base64.b64decode(image_data)
         img = Image.open(BytesIO(image))
-        img.save(os.path.join("received_frames", "frame.jpg"))
-        return jsonify({"success": True, "message": "Frame received"}), 200
+
+        objects = detect(img)
+        return jsonify({"success": True, "objects": objects}), 200
     else:
         return jsonify({"success": False, "message": "No image provided"}), 400
 

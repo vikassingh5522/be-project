@@ -1,11 +1,12 @@
 // src/WebcamCapture.js
-import React, { useRef, useCallback, useEffect } from 'react';
+import React, { useRef, useCallback, useEffect, useState } from 'react';
 import Webcam from 'react-webcam';
 import axios from 'axios';
 
 const WebcamCapture = () => {
-  
   const webcamRef = useRef(null);
+  
+  const [detectedObjects, setDetectedObjects] = useState([]);
 
   const sendFrameToBackend = useCallback(() => {
     const imageSrc = webcamRef.current.getScreenshot();
@@ -14,6 +15,7 @@ const WebcamCapture = () => {
         image: imageSrc,
       })
       .then((response) => {
+        setDetectedObjects(response.data.objects || []);
         console.log('Frame sent successfully', response.data);
       })
       .catch((error) => {
@@ -29,7 +31,12 @@ const WebcamCapture = () => {
 
   return (
     <div>
+<<<<<<< HEAD
       <h1 align="center">Webcam Capture</h1>
+=======
+      <h1>Webcam Capture</h1>
+      
+>>>>>>> 48a98862db46911ffa709037f2f7e87e62c42bf6
       <Webcam
         audio={false}
         ref={webcamRef}
@@ -37,6 +44,19 @@ const WebcamCapture = () => {
         width={416}
         height={416}
       />
+      
+      <div>
+        <h2>Detected Objects</h2>
+        {detectedObjects.length > 0 ? (
+          <ul>
+            {detectedObjects.map((object, index) => (
+              <li key={index}>{object}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>No objects detected yet.</p>
+        )}
+      </div>
     </div>
   );
 };
