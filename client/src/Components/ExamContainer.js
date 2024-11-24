@@ -1,5 +1,3 @@
-import React from 'react';
-
 const ExamContainer = ({
     questions,
     currentQuestionIndex,
@@ -7,8 +5,12 @@ const ExamContainer = ({
     selectedAnswers,
     onNext,
     onPrevious,
-    onSubmit
+    onSubmit,
 }) => {
+    if (!questions || questions.length === 0) {
+        return <p className="text-red-500">No questions available. Please upload a valid file.</p>;
+    }
+
     const currentQuestion = questions[currentQuestionIndex];
 
     return (

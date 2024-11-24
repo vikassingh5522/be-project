@@ -31,12 +31,8 @@ const WebcamCapture = () => {
 
   return (
     <div>
-<<<<<<< HEAD
-      <h1 align="center">Webcam Capture</h1>
-=======
       <h1>Webcam Capture</h1>
       
->>>>>>> 48a98862db46911ffa709037f2f7e87e62c42bf6
       <Webcam
         audio={false}
         ref={webcamRef}

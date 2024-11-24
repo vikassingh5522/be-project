@@ -2,20 +2,32 @@ import { useState, useEffect } from 'react';
 
 const Timer = ({ initialMinutes, isExamActive, onTimeUp, setTimeLeft, onExamSubmit }) => {
     const [timeLeft, setLocalTimeLeft] = useState(initialMinutes * 60); // Convert minutes to seconds
+    const [examStartTime, setExamStartTime] = useState(null); // Store the start time
 
+    // Sync with parent when timeLeft changes
+    useEffect(() => {
+        if (setTimeLeft) {
+            setTimeLeft(timeLeft);
+        }
+    }, [timeLeft, setTimeLeft]);
+
+    // Handle the timer logic
     useEffect(() => {
         let timer;
 
         if (isExamActive && timeLeft > 0) {
+            if (!examStartTime) {
+                setExamStartTime(Date.now()); // Record the start time
+            }
+
             timer = setInterval(() => {
                 setLocalTimeLeft((prev) => {
-                    if (prev > 0) {
-                        const newTime = prev - 1;
-                        if (setTimeLeft) setTimeLeft(newTime); // Sync with parent state
-                        return newTime;
+                    if (prev > 1) {
+                        return prev - 1;
+                    } else {
+                        clearInterval(timer); // Stop the timer
+                        return 0;
                     }
-                    clearInterval(timer); // Stop the timer
-                    return 0;
                 });
             }, 1000);
         }
@@ -25,19 +37,21 @@ const Timer = ({ initialMinutes, isExamActive, onTimeUp, setTimeLeft, onExamSubm
         }
 
         return () => clearInterval(timer); // Cleanup interval on component unmount or dependency change
-    }, [isExamActive, timeLeft, onTimeUp, setTimeLeft]);
+    }, [isExamActive, timeLeft, onTimeUp, examStartTime]);
 
-    useEffect(() => {
-        if (!isExamActive) {
-            setLocalTimeLeft(initialMinutes * 60); // Reset timer when exam is inactive
-        }
-    }, [isExamActive, initialMinutes]);
-
+    // Stop the timer when the exam is submitted
     useEffect(() => {
         if (onExamSubmit) {
-            setLocalTimeLeft(0); // Stop the timer when the exam is submitted
+            const endTime = Date.now(); // Record the end time
+            clearInterval();
+
+            // Calculate exam duration in seconds
+            if (examStartTime) {
+                const duration = Math.round((endTime - examStartTime) / 1000);
+                console.log(`Exam duration: ${duration} seconds`);
+            }
         }
-    }, [onExamSubmit]);
+    }, [onExamSubmit, examStartTime]);
 
     return null; // Timer logic only; no UI
 };

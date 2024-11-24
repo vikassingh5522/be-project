@@ -21,19 +21,23 @@ function App() {
     const [isFullscreenPromptVisible, setIsFullscreenPromptVisible] = useState(false);
     const [isCodeEditorVisible, setIsCodeEditorVisible] = useState(false);
     const [file, setFile] = useState(null);
-    const [questions, setQuestions] = useState([]);
+    const [questions, setQuestions] = useState([]); // Initialize as an empty array
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswers, setSelectedAnswers] = useState({});
     const [error, setError] = useState('');
     const [examDuration, setExamDuration] = useState(0); // Exam duration in minutes
-    const [isDurationInputVisible, setIsDurationInputVisible] = useState(false); // Toggle duration input visibility
-    const [timeLeft, setTimeLeft] = useState(null); // Time left in seconds
-
+    const [isDurationInputVisible, setIsDurationInputVisible] = useState(false);
+    const [timeLeft, setTimeLeft] = useState(null);
 
     useTabFocusMonitor();
     useKeyLogger(isLoggingActive, setKeyLogs);
 
     const startExam = async () => {
+        if (questions.length === 0) {
+            setError('No questions available. Please upload a valid file.');
+            return;
+        }
+
         localStorage.setItem('exitCount', 0);
         setExamStarted(true);
         await goFullscreen();
@@ -94,9 +98,9 @@ function App() {
 
             const data = await response.json();
             if (data.success) {
-                setQuestions(data.questions);
+                setQuestions(data.questions || []); // Set questions or default to an empty array
                 setError('');
-                setIsDurationInputVisible(true); // Show duration input after successful file upload
+                setIsDurationInputVisible(true);
             } else {
                 setError(data.message);
             }
@@ -114,18 +118,32 @@ function App() {
     };
 
     const handleNext = () => {
-        setCurrentQuestionIndex((prev) => prev + 1);
+        if (currentQuestionIndex < questions.length - 1) {
+            setCurrentQuestionIndex((prev) => prev + 1);
+        }
     };
 
     const handlePrevious = () => {
-        setCurrentQuestionIndex((prev) => prev - 1);
+        if (currentQuestionIndex > 0) {
+            setCurrentQuestionIndex((prev) => prev - 1);
+        }
     };
 
     const handleSubmit = () => {
         alert('Exam submitted successfully!');
         console.log('Selected Answers:', selectedAnswers);
-        setExamStarted(false); // Stop the timer
+    
+        // Reset the state to go back to the starting page
+        setExamStarted(false);
+        setQuestions([]);
+        setCurrentQuestionIndex(0);
+        setSelectedAnswers({});
+        setExamDuration(0);
+        setIsDurationInputVisible(false);
+        setTimeLeft(null);
+        setError('');
     };
+    
 
     const handleTimeUp = () => {
         alert('Time is up! The exam will now be submitted.');
@@ -137,7 +155,6 @@ function App() {
             <h1 className="text-4xl font-bold mb-6 text-gray-800">Online Exam</h1>
 
             {examStarted && <Header exitCount={exitCount} timeLeft={timeLeft} />}
- {/* Show header only when exam is started */}
 
             {!examStarted && (
                 <div className="file-upload-section mb-4">
@@ -163,20 +180,18 @@ function App() {
                         onChange={(e) => setExamDuration(Number(e.target.value))}
                         className="border rounded px-4 py-2 w-full"
                     />
-                    {examDuration > 0 && (
-                        <StartExamButton onClick={startExam} />
-                    )}
+                    {examDuration > 0 && <StartExamButton onClick={startExam} />}
                 </div>
             )}
 
-            {examStarted && (
+            {examStarted && questions.length > 0 && (
                 <>
                     <Timer
                         initialMinutes={examDuration}
                         isExamActive={examStarted}
                         onTimeUp={handleTimeUp}
-                        onExamSubmit={!examStarted}
                         setTimeLeft={setTimeLeft}
+                        onExamSubmit={!examStarted}
                     />
                     <ExamContainer
                         questions={questions}
@@ -188,6 +203,10 @@ function App() {
                         onSubmit={handleSubmit}
                     />
                 </>
+            )}
+
+            {examStarted && questions.length === 0 && (
+                <p className="text-red-500">No questions loaded. Please restart the exam.</p>
             )}
 
             <ToggleableWebcam
