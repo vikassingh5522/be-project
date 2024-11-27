@@ -1,0 +1,26 @@
+/* Moiré Pattern Effect */
+.moire-pattern {
+    position: relative;
+    z-index: 0;
+  }
+  
+  .moire-pattern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Ensure it doesn't block interactions */
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(0, 0, 0, 0.01),
+      rgba(0, 0, 0, 0.01) 5px,
+      rgba(255, 255, 255, 0.01) 5px,
+      rgba(255, 255, 255, 0.01) 10px
+    );
+    mix-blend-mode: overlay; /* Blends with background */
+    opacity: 0.3; /* Adjust intensity of the pattern */
+    z-index: 1;
+  }
+  

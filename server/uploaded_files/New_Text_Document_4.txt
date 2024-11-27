@@ -10,8 +10,11 @@ b) Madrid
 c) Paris
 d) Rome
 
+Problem Statement: Write a code for xyz.
+
 What is the capital of France?
 a) Berlin
 b) Madrid
 c) Paris
-d)ajldcnka
+
+

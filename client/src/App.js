@@ -8,8 +8,6 @@ import ExamContainer from './Components/ExamContainer';
 import KeyLogs from './Components/KeyLogs';
 import FullscreenPrompt from './Components/FullscreenPrompt';
 import ToggleableWebcam from './Components/ToggleableWebcam';
-import CodeButton from './Components/CodeButton';
-import CodeEditor from './Components/CodeEditor';
 import Timer from './Components/Timer';
 
 function App() {
@@ -19,7 +17,6 @@ function App() {
     const [keyLogs, setKeyLogs] = useState('');
     const [showWebcam, setShowWebcam] = useState(true);
     const [isFullscreenPromptVisible, setIsFullscreenPromptVisible] = useState(false);
-    const [isCodeEditorVisible, setIsCodeEditorVisible] = useState(false);
     const [file, setFile] = useState(null);
     const [questions, setQuestions] = useState([]); // Initialize as an empty array
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -37,7 +34,6 @@ function App() {
             setError('No questions available. Please upload a valid file.');
             return;
         }
-
         localStorage.setItem('exitCount', 0);
         setExamStarted(true);
         await goFullscreen();
@@ -66,7 +62,6 @@ function App() {
 
         window.addEventListener('keydown', disableF11);
         window.addEventListener('keydown', handleWindowsKey);
-
         return () => {
             window.removeEventListener('keydown', disableF11);
             window.removeEventListener('keydown', handleWindowsKey);
@@ -86,19 +81,16 @@ function App() {
             setError('Please select a file.');
             return;
         }
-
         const formData = new FormData();
         formData.append('file', file);
-
         try {
             const response = await fetch('http://localhost:5000/upload-file', {
                 method: 'POST',
                 body: formData,
             });
-
             const data = await response.json();
             if (data.success) {
-                setQuestions(data.questions || []); // Set questions or default to an empty array
+                setQuestions(data.questions || []);
                 setError('');
                 setIsDurationInputVisible(true);
             } else {
@@ -119,21 +111,19 @@ function App() {
 
     const handleNext = () => {
         if (currentQuestionIndex < questions.length - 1) {
-            setCurrentQuestionIndex((prev) => prev + 1);
+            setCurrentQuestionIndex(prev => prev + 1);
         }
     };
 
     const handlePrevious = () => {
         if (currentQuestionIndex > 0) {
-            setCurrentQuestionIndex((prev) => prev - 1);
+            setCurrentQuestionIndex(prev => prev - 1);
         }
     };
 
     const handleSubmit = () => {
         alert('Exam submitted successfully!');
         console.log('Selected Answers:', selectedAnswers);
-    
-        // Reset the state to go back to the starting page
         setExamStarted(false);
         setQuestions([]);
         setCurrentQuestionIndex(0);
@@ -143,7 +133,6 @@ function App() {
         setTimeLeft(null);
         setError('');
     };
-    
 
     const handleTimeUp = () => {
         alert('Time is up! The exam will now be submitted.');
@@ -153,83 +142,33 @@ function App() {
     return (
         <div className="App min-h-screen bg-gray-100 flex flex-col items-center justify-center">
             <h1 className="text-4xl font-bold mb-6 text-gray-800">Online Exam</h1>
-
             {examStarted && <Header exitCount={exitCount} timeLeft={timeLeft} />}
-
             {!examStarted && (
                 <div className="file-upload-section mb-4">
                     <input type="file" onChange={handleFileChange} />
-                    <button
-                        onClick={uploadFile}
-                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-4"
-                    >
+                    <button onClick={uploadFile} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-4">
                         Upload File
                     </button>
                     {error && <p className="text-red-500">{error}</p>}
                 </div>
             )}
-
             {!examStarted && isDurationInputVisible && (
                 <div className="duration-input-section mt-4">
-                    <label className="block text-sm font-medium mb-2">
-                        Enter exam duration (in minutes):
-                    </label>
-                    <input
-                        type="number"
-                        min="1"
-                        onChange={(e) => setExamDuration(Number(e.target.value))}
-                        className="border rounded px-4 py-2 w-full"
-                    />
+                    <label className="block text-sm font-medium mb-2">Enter exam duration (in minutes):</label>
+                    <input type="number" min="1" onChange={(e) => setExamDuration(Number(e.target.value))} className="border rounded px-4 py-2 w-full" />
                     {examDuration > 0 && <StartExamButton onClick={startExam} />}
                 </div>
             )}
-
             {examStarted && questions.length > 0 && (
                 <>
-                    <Timer
-                        initialMinutes={examDuration}
-                        isExamActive={examStarted}
-                        onTimeUp={handleTimeUp}
-                        setTimeLeft={setTimeLeft}
-                        onExamSubmit={!examStarted}
-                    />
-                    <ExamContainer
-                        questions={questions}
-                        currentQuestionIndex={currentQuestionIndex}
-                        handleOptionChange={handleOptionChange}
-                        selectedAnswers={selectedAnswers}
-                        onNext={handleNext}
-                        onPrevious={handlePrevious}
-                        onSubmit={handleSubmit}
-                    />
+                    <Timer initialMinutes={examDuration} isExamActive={examStarted} onTimeUp={handleTimeUp} setTimeLeft={setTimeLeft} onExamSubmit={!examStarted} />
+                    <ExamContainer questions={questions} currentQuestionIndex={currentQuestionIndex} handleOptionChange={handleOptionChange} selectedAnswers={selectedAnswers} onNext={handleNext} onPrevious={handlePrevious} onSubmit={handleSubmit} />
                 </>
             )}
-
-            {examStarted && questions.length === 0 && (
-                <p className="text-red-500">No questions loaded. Please restart the exam.</p>
-            )}
-
-            <ToggleableWebcam
-                showWebcam={showWebcam}
-                onToggle={() => setShowWebcam((prev) => !prev)}
-            />
-
+            {examStarted && questions.length === 0 && <p className="text-red-500">No questions loaded. Please restart the exam.</p>}
+            <ToggleableWebcam showWebcam={showWebcam} onToggle={() => setShowWebcam(prev => !prev)} />
             {examStarted && <KeyLogs keyLogs={keyLogs} />}
-
             {isFullscreenPromptVisible && <FullscreenPrompt onReenter={handleReenterFullscreen} />}
-
-            {examStarted && (
-                <CodeButton
-                    onClick={() => setIsCodeEditorVisible(true)}
-                />
-            )}
-
-            {isCodeEditorVisible && (
-                <CodeEditor
-                    onClose={() => setIsCodeEditorVisible(false)}
-                    goFullscreen={goFullscreen}
-                />
-            )}
         </div>
     );
 }

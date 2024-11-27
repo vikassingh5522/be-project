@@ -73,12 +73,10 @@ def submit_code():
 
 @app.route('/upload-file', methods=['POST'])
 def upload_file():
-    """Handles uploading and processing a Word or text file."""
     if 'file' not in request.files:
         return jsonify({"success": False, "message": "No file part in the request"}), 400
 
     file = request.files['file']
-
     if file.filename == '':
         return jsonify({"success": False, "message": "No file selected"}), 400
 
@@ -90,15 +88,7 @@ def upload_file():
     file.save(filepath)
 
     try:
-        # Process the uploaded file
-        if filename.endswith('.txt'):
-            with open(filepath, 'r', encoding='utf-8') as f:
-                content = f.read()
-        elif filename.endswith('.docx'):
-            doc = docx.Document(filepath)
-            content = "\n".join([p.text for p in doc.paragraphs])
-
-        questions = parse_questions(content)
+        questions = parse_questions(filepath, filename)
         if not questions:
             return jsonify({"success": False, "message": "No valid questions found in the file."}), 400
 
@@ -106,34 +96,50 @@ def upload_file():
     except Exception as e:
         return jsonify({"success": False, "message": f"Error processing file: {str(e)}"}), 500
 
-
-def parse_questions(content):
-    """Parse questions and options from the file content."""
+def parse_questions(filepath, filename):
     questions = []
-    lines = content.split('\n')
+    content = ""
+    if filename.endswith('.txt'):
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+    elif filename.endswith('.docx'):
+        doc = docx.Document(filepath)
+        content = "\n".join([p.text for p in doc.paragraphs])
 
+    lines = content.split('\n')
     current_question = None
     current_options = []
+    question_type = 'mcq'  # Default to MCQ
 
     for line in lines:
         line = line.strip()
-        if line.endswith('?'):
+        if 'Problem Statement:' in line:
             # Save the previous question if it exists
-            if current_question and current_options:
-                questions.append({"question": current_question, "options": current_options})
-            # Start a new question
+            if current_question:
+                questions.append({"type": question_type, "question": current_question, "options": current_options})
+            # Start a new coding question
             current_question = line
             current_options = []
-        elif line.startswith(('a)', 'b)', 'c)', 'd)')):
-            # Add options to the current question
+            question_type = 'coding'
+        elif line.endswith('?'):
+            # Save the previous question if it exists
+            if current_question:
+                questions.append({"type": question_type, "question": current_question, "options": current_options})
+            # Start a new MCQ
+            current_question = line
+            current_options = []
+            question_type = 'mcq'  # Reset to default type
+        elif line.startswith(('a)', 'b)', 'c)', 'd)')) and question_type == 'mcq':
+            # Add options to the current MCQ
             current_options.append(line)
 
     # Add the last question if it exists
-    if current_question and current_options:
-        questions.append({"question": current_question, "options": current_options})
+    if current_question:
+        questions.append({"type": question_type, "question": current_question, "options": current_options})
 
     return questions
 
+    
 
 @app.errorhandler(413)
 def file_too_large(e):

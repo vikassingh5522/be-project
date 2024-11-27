@@ -1,13 +1,26 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
+//import './watermark.css'; // Watermark CSS
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+//import WatermarkOverlay from './Components/WatermarkOverlay';
+
+/*const MoirePatternWrapper = ({ children }) => (
+  <div className="moire-pattern">
+    {children}
+  </div>
+);*/
+
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+{/*<MoirePatternWrapper>*/}
+    
+      <App />
+    
+    {/*</MoirePatternWrapper>*/}
   </React.StrictMode>
 );
 
