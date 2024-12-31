@@ -122,8 +122,8 @@ function App() {
     };
 
     const handleSubmit = () => {
-        alert('Exam submitted successfully!');
         console.log('Selected Answers:', selectedAnswers);
+        alert('Exam submitted successfully!');
         setExamStarted(false);
         setQuestions([]);
         setCurrentQuestionIndex(0);

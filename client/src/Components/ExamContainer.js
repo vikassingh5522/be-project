@@ -40,7 +40,8 @@ const ExamContainer = ({
                                 value={option}
                                 checked={selectedAnswers[currentQuestionIndex] === option}
                                 onChange={handleOptionChange}
-                            /> {option}
+                            />{' '}
+                            {option}
                         </label>
                     ))}
                 </div>
@@ -53,7 +54,12 @@ const ExamContainer = ({
                     >
                         Toggle Code Editor
                     </button>
-                    {showCodeEditor && <CodeEditor onSubmitCode={handleCodeSubmissionFeedback} />}
+                    {showCodeEditor && (
+                        <CodeEditor
+                            onSubmitCode={handleCodeSubmissionFeedback}
+                            questionNumber={currentQuestionIndex + 1} // Pass the correct question number
+                        />
+                    )}
                 </>
             )}
             <div className="flex justify-between mt-4">

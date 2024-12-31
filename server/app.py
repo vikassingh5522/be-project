@@ -56,19 +56,28 @@ def submit_code():
     """Handles submitting code from the code editor."""
     data = request.get_json()
     code = data.get('code', '')
+    language = data.get('language', 'python')  # Default to Python if no language is provided
+    question_number = data.get('question_number', 1)  # Default to question 1 if not provided
 
     if not code:
         return jsonify({"success": False, "message": "No code provided"}), 400
 
+    if not language:
+        return jsonify({"success": False, "message": "No language specified"}), 400
+
     try:
-        # Save the submitted code to code.txt in the server directory
-        file_path = os.path.join(CODE_DIR, "code.txt")
-        with open(file_path, 'w') as file:
+        # Construct the filename and save path
+        filename = f"{language}_question_{question_number}.txt"
+        file_path = os.path.join(CODE_DIR, filename)
+
+        # Save the code to the file
+        with open(file_path, 'w', encoding='utf-8') as file:
             file.write(code)
 
-        return jsonify({"success": True, "message": "Code saved successfully"}), 200
+        return jsonify({"success": True, "message": f"Code for question {question_number} saved successfully as {filename}"}), 200
     except Exception as e:
         return jsonify({"success": False, "message": f"Error saving code: {str(e)}"}), 500
+
 
 
 @app.route('/upload-file', methods=['POST'])
