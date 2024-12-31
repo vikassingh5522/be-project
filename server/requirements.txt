@@ -5,3 +5,4 @@ opencv-python>=4.7.0.72
 numpy>=1.24.0
 Pillow>=9.5.0
 react-ace>=13.0.0
+react-icons>= ^5.4.0
