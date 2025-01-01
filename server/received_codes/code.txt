@@ -1,1 +1,6 @@
-# Start coding here...
+#include<iostream>
+using namespace std;
+int main(){
+  int a =69;
+  cout<<a;
+}
