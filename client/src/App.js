@@ -14,7 +14,7 @@ function App() {
     const { isFullscreen, goFullscreen, exitCount } = useFullscreenManager();
     const [examStarted, setExamStarted] = useState(false);
     const [isLoggingActive, setIsLoggingActive] = useState(false);
-    const [keyLogs, setKeyLogs] = useState('');
+    const [keyLogs, setKeyLogs] = useState("");
     const [showWebcam, setShowWebcam] = useState(true);
     const [isFullscreenPromptVisible, setIsFullscreenPromptVisible] = useState(false);
     const [file, setFile] = useState(null);
@@ -32,10 +32,10 @@ function App() {
 
     const startExam = async () => {
         if (questions.length === 0) {
-            setError('No questions available. Please upload a valid file.');
+            setError("No questions available. Please upload a valid file.");
             return;
         }
-        localStorage.setItem('exitCount', 0);
+        localStorage.setItem("exitCount", 0);
         setExamStarted(true);
         examStartTime.current = Date.now(); // Store the exam start time
         await goFullscreen();
@@ -81,27 +81,27 @@ function App() {
 
     const uploadFile = async () => {
         if (!file) {
-            setError('Please select a file.');
+            setError("Please select a file.");
             return;
         }
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append("file", file);
         try {
-            const response = await fetch('http://localhost:5000/upload-file', {
-                method: 'POST',
+            const response = await fetch("http://localhost:5000/upload-file", {
+                method: "POST",
                 body: formData,
             });
             const data = await response.json();
             if (data.success) {
                 setQuestions(data.questions || []);
-                setError('');
+                setError("");
                 setIsDurationInputVisible(true);
             } else {
                 setError(data.message);
             }
         } catch (err) {
-            console.error('Error uploading file:', err);
-            setError('An error occurred while uploading the file.');
+            console.error("Error uploading file:", err);
+            setError("An error occurred while uploading the file.");
         }
     };
 
@@ -131,7 +131,10 @@ function App() {
             {!examStarted && (
                 <div className="file-upload-section mb-4">
                     <input type="file" onChange={handleFileChange} />
-                    <button onClick={uploadFile} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-4">
+                    <button
+                        onClick={uploadFile}
+                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-4"
+                    >
                         Upload File
                     </button>
                     {error && <p className="text-red-500">{error}</p>}
@@ -170,7 +173,9 @@ function App() {
             )}
             <ToggleableWebcam showWebcam={showWebcam} onToggle={() => setShowWebcam((prev) => !prev)} />
             {examStarted && <KeyLogs keyLogs={keyLogs} />}
-            {isFullscreenPromptVisible && <FullscreenPrompt onReenter={handleReenterFullscreen} />}
+            {isFullscreenPromptVisible && (
+                <FullscreenPrompt onReenter={handleReenterFullscreen} />
+            )}
         </div>
     );
 }
