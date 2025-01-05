@@ -16,7 +16,7 @@ const WebcamCapture = () => {
       })
       .then((response) => {
         setDetectedObjects(response.data.objects || []);
-        console.log('Frame sent successfully', response.data);
+        // console.log('Frame sent successfully', response.data);
       })
       .catch((error) => {
         console.error('Error sending frame:', error);
