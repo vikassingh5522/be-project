@@ -10,6 +10,7 @@ venv
 info.log
 frame.jpg
 __pycache__
+/__pycache__/*
 *yolov8n*
 
 # testing

@@ -1,5 +1,18 @@
 import React from 'react';
 
+const Header = ({ exitCount }) => {
+    
+
+    return (
+        <div className="absolute top-4 right-4 bg-gray-800 text-white p-2 rounded">
+            <div>Fullscreen Exits: {exitCount}</div>
+        </div>
+    );
+};
+
+export default Header;
+/*
+
 const Header = ({ exitCount, timeLeft }) => {
     const formatTime = (seconds) => {
         if (seconds <= 0) {
@@ -9,8 +22,7 @@ const Header = ({ exitCount, timeLeft }) => {
         const secs = seconds % 60;
         return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
-
-    return (
+return (
         <div className="absolute top-4 right-4 bg-gray-800 text-white p-2 rounded">
             <div>Fullscreen Exits: {exitCount}</div>
             {timeLeft !== null && (
@@ -20,6 +32,5 @@ const Header = ({ exitCount, timeLeft }) => {
             )}
         </div>
     );
-};
 
-export default Header;
+*/ 

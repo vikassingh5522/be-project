@@ -7,9 +7,31 @@ import os
 from image_processing.objDec import detect
 from werkzeug.utils import secure_filename
 import docx
+import jwt
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+import bcrypt
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+CORS(app)
+
+
+
+URI = os.getenv('USER1')
+# Create a new client and connect to the server
+client = MongoClient(URI, server_api=ServerApi('1'))
+global db
+# Send a ping to confirm a successful connection
+try:
+    client.admin.command('ping')
+    db = client["beproject"]
+    print("You successfully connected to MongoDB!")
+except Exception as e:
+    print(e)
 
 # Ensure directories exist
 UPLOAD_FOLDER = 'uploaded_files'
@@ -56,19 +78,28 @@ def submit_code():
     """Handles submitting code from the code editor."""
     data = request.get_json()
     code = data.get('code', '')
+    language = data.get('language', 'python')  # Default to Python if no language is provided
+    question_number = data.get('question_number', 1)  # Default to question 1 if not provided
 
     if not code:
         return jsonify({"success": False, "message": "No code provided"}), 400
 
+    if not language:
+        return jsonify({"success": False, "message": "No language specified"}), 400
+
     try:
-        # Save the submitted code to code.txt in the server directory
-        file_path = os.path.join(CODE_DIR, "code.txt")
-        with open(file_path, 'w') as file:
+        # Construct the filename and save path
+        filename = f"{language}_question_{question_number}.txt"
+        file_path = os.path.join(CODE_DIR, filename)
+
+        # Save the code to the file
+        with open(file_path, 'w', encoding='utf-8') as file:
             file.write(code)
 
-        return jsonify({"success": True, "message": "Code saved successfully"}), 200
+        return jsonify({"success": True, "message": f"Code for question {question_number} saved successfully as {filename}"}), 200
     except Exception as e:
         return jsonify({"success": False, "message": f"Error saving code: {str(e)}"}), 500
+
 
 
 @app.route('/upload-file', methods=['POST'])
@@ -95,6 +126,25 @@ def upload_file():
         return jsonify({"success": True, "questions": questions}), 200
     except Exception as e:
         return jsonify({"success": False, "message": f"Error processing file: {str(e)}"}), 500
+
+@app.route('/store-keylogs', methods=['POST'])
+def store_keylogs():
+    """Handles storing keylogs to a text file."""
+    data = request.get_json()
+    key_logs = data.get('keyLogs', '')
+
+    if not key_logs:
+        return jsonify({"success": False, "message": "No key logs provided"}), 400
+
+    try:
+        file_path = os.path.join(UPLOAD_FOLDER, 'keylogs.txt')
+        with open(file_path, 'w', encoding='utf-8') as file:
+            file.write(key_logs)
+
+        return jsonify({"success": True, "message": "Keylogs stored successfully"}), 200
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Error storing keylogs: {str(e)}"}), 500
+
 
 def parse_questions(filepath, filename):
     questions = []
@@ -139,13 +189,94 @@ def parse_questions(filepath, filename):
 
     return questions
 
-    
+
+     
 
 @app.errorhandler(413)
 def file_too_large(e):
     """Handle file size limit exceeded."""
     return jsonify({"success": False, "message": "File is too large. Maximum size allowed is 10MB."}), 413
 
+@app.route('/auth/signup', methods=['POST'])
+def register_user():
+    try:
+        data = request.get_json()
+        
+        # Check if all necessary fields are present
+        required_fields = ["username", "password", "email", "role"]
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"success": False, "message": f"Missing {field} field"}), 400
+        
+        username = data["username"]
+        password = data["password"]
+        email = data["email"]
+        role = data["role"]
+
+        usersCollection = db["users"]
+        existing_user = usersCollection.find_one({"username": username})
+        JWT_SECRET = os.getenv("JWT_SECRET")
+        if existing_user:
+            return jsonify({"success": False, "message": "Username already exists"}), 409
+        
+        # Hash the password
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+        # Generate JWT token
+        token = jwt.encode({"email": email, "role": role}, JWT_SECRET, algorithm="HS256")
+
+        # Store user in database
+        usersCollection.insert_one({"username": username, "password": hashed_password, "email": email, "role": role})
+
+        return jsonify({"success": True, "message": "User registered successfully", "token": token}), 201
+    except Exception as e:
+        return jsonify({"success": False, "message": f"An error occurred: {str(e)}"}), 500
+    
+
+@app.route('/auth/login', methods=['POST'])
+def authenticate_user():
+    try:
+        data = request.get_json()
+        
+        # Check if necessary fields are present
+        if "username" not in data or "password" not in data:
+            return jsonify({"success": False, "message": "Missing username or password"}), 400
+
+        username = data["username"]
+        user_password = data["password"]
+        JWT_SECRET = os.getenv("JWT_SECRET")
+        
+        # Extract the JWT token from the Authorization header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return jsonify({"success": False, "message": "Missing or malformed token"}), 401
+        
+        token = auth_header.split(' ')[1]
+        
+        # Decode the JWT token
+        try:
+            decoded_token = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            return jsonify({"success": False, "message": "Token expired"}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({"success": False, "message": "Invalid token"}), 401
+
+        # Check if the user exists
+        usersCollection = db["users"]
+        user_data = usersCollection.find_one({"username": username})
+
+        if user_data:
+            # Check if the password matches
+            if not bcrypt.checkpw(user_password.encode('utf-8'), user_data['password']):
+                return jsonify({"success": False, "message": "Invalid credentials"}), 401
+
+            return jsonify({"success": True, "message": "Login successful", "token": token}), 200
+        else:
+            return jsonify({"success": False, "message": "User not found"}), 404
+
+    except Exception as e:
+        return jsonify({"success": False, "message": f"An error occurred: {str(e)}"}), 500
+    
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)

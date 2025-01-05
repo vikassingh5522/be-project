@@ -1,0 +1,2 @@
+FIX: Store code by roll number or another unique candidate identifier.
+BUG: The React app updates all components once per second due to webcam frames, causing the application to lag.
