@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-python';
 import 'ace-builds/src-noconflict/mode-java';
@@ -32,7 +32,14 @@ const CodeEditor = ({ questionNumber }) => {
 
     const handleEditorChange = (newValue) => {
         setCode(newValue);
+        localStorage.setItem(`code_question_${questionNumber}`, newValue);
     };
+    useEffect(() => {
+        const savedCode = localStorage.getItem(`code_question_${questionNumber}`);
+        if (savedCode) {
+            setCode(savedCode);
+        }
+    }, [questionNumber]);
 
     const handleSubmit = async () => {
         try {
