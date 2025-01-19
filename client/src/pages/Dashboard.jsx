@@ -1,17 +1,16 @@
-import React from 'react'
-import SideBar from '../Components/SideBar'
-import ExamList from '../Components/ExamList'
+import React, { useEffect } from 'react'
+import { useVerifyToken } from '../hooks/useVerifyToken'
+import StudentDashboard from './StudentDashboard'
+import InstructorDashboard from './InstructorDashboard'
 
 const Dashboard = () => {
+    const user = useVerifyToken();
+
   return (
     <>
-    <section className='min-h-screen'>
-        <div className="flex min-h-screen">
-            <SideBar />
-            <ExamList />
-        </div>
-
-    </section>
+    {
+        user?.role == "student" ? <StudentDashboard user={user} /> : <InstructorDashboard user={user} />
+    }
     
     </>
   )

@@ -3,6 +3,7 @@ import Svgfile from "../assets/signup.svg";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { useVerifyToken } from "../hooks/useVerifyToken";
 
 const Login = () => {
   const [username, setUserName] = useState("");
@@ -11,11 +12,17 @@ const Login = () => {
   const [role, setRole] = useState("");
   const [error, setError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
-  const submitButton = useRef(null);
+  const user = useVerifyToken();
 
+  const [token, setToken] = useState('');
   const handleLogin = async (e) => {
     e.preventDefault();
     setError(null);
+    if(!username || !password || !email || !role) {
+      setError("All fields are required");
+      return;
+    }
+
     console.log(username, email, password, role);
     axios.post("http://localhost:5000/auth/login", {username, email, password, role}, {
         headers: {
@@ -25,7 +32,8 @@ const Login = () => {
       if(response.data.success){
         console.log(response.data)
         localStorage.setItem('token', response.data.token);
-        window.location.href = "/dashboard";
+        role == 'teacher' ? window.location.href = "/dashboard" : window.location.href ="/home";
+        
       }else{
         setError(response.data.message);
       }
@@ -35,17 +43,22 @@ const Login = () => {
     });
   };
 
+  const verifyToken = async function(token){
+     await axios.get('http:localhost:5000/auth/verify', {},{
+      headers: {
+        'Authorization': 'Bearer '+ token
+      }
+    })
+  }
+
   useEffect(() => {
-    if (localStorage.getItem('token')) {
+    if(user?.role == "student"){
+      window.location.href = "/dashboard";
+    }
+    if(user?.role == "teacher"){
       window.location.href = "/dashboard";
     }
   }, []);
-
-  useEffect(() =>{
-    submitButton.current.addEventListener('click', handleLogin);
-    return () => submitButton.current.removeEventListener('click', handleLogin);
-  }, []);
-
   return (
     <>
       <div className="flex w-full min-h-screen">
@@ -116,7 +129,6 @@ const Login = () => {
               <button
                 className="w-full mt-4 bg-red-500 text-white p-2 rounded  requiredover:bg-red-600"
                 type="submit"
-                ref={submitButton}
               >
                 Login
               </button>

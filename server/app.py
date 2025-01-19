@@ -214,7 +214,7 @@ def register_user():
         role = data["role"]
         print(username, password, email, role)
         usersCollection = db["users"]
-        existing_user = usersCollection.find_one({"username": username})
+        existing_user = usersCollection.find_one({"username": username, "email": email})
         JWT_SECRET = os.getenv("JWT_SECRET")
         if existing_user:
             return jsonify({"success": False, "message": "Username already exists"}), 409
@@ -262,7 +262,32 @@ def authenticate_user():
     except Exception as e:
         print(e)
         return jsonify({"success": False, "message": f"An error occurred: {str(e)}"}), 500
-    
+
+@app.route('/auth/verify', methods=['GET'])
+def verify_token():
+    try:
+        # Get the token from the Authorization header
+        auth_header = request.headers.get('Authorization')
+        
+        if not auth_header:
+            return jsonify({"success": False, "message": "Token is missing"}), 401
+        
+        token = auth_header.split(" ")[1]  # Extract token part from "Bearer <token>"
+
+        # Decode the token
+        JWT_SECRET = os.getenv("JWT_SECRET")
+        decoded_token = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        
+        # Token is valid, return the user data (or just a success message)
+        return jsonify({"success": True, "message": "Token is valid", "user_data": {"username": decoded_token['username'], "role": decoded_token['role']}}), 200
+
+    except jwt.ExpiredSignatureError:
+        return jsonify({"success": False, "message": "Token has expired"}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({"success": False, "message": "Invalid token"}), 401
+    except Exception as e:
+        print(e)
+        return jsonify({"success": False, "message": f"An error occurred: {str(e)}"}), 500    
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

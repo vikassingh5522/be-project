@@ -11,7 +11,6 @@ const Signup = () => {
     const [role, setRole] = useState("");
     const [error, setError] = useState(null);
     const [showPassword, setShowPassword] = useState(false);
-    const submitButton = useRef(null);
   
     const handleLogin = async (e) => {
       e.preventDefault();
@@ -104,7 +103,7 @@ const Signup = () => {
                   <button
                     className="w-full mt-4 bg-red-500 text-white p-2 rounded  requiredover:bg-red-600"
                     type="submit"
-                    ref={submitButton}
+                   
                   >
                     Signup
                   </button>

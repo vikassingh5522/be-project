@@ -9,7 +9,7 @@ const SideBar = () => {
 
   return (
     <>
-        <div className="sidebar p-3 w-1/5 bg-slate-100 min-h-full flex flex-col">
+        <div className="sidebar p-3 w-1/5 bg-slate-100 min-h-full flex flex-col shadow">
         <h5 className="text-gray-800 font-semibold uppercase my-3">Home</h5>
             <ul className='flex flex-col gap-2'> 
                 <li className='shadow-md'>
