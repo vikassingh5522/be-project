@@ -8,7 +8,7 @@ const Signup = () => {
     const [username, setUserName] = useState("");
     const [password, setPassword] = useState("");
     const [email, setEmail] = useState("");
-    const [role, setRole] = useState(null);
+    const [role, setRole] = useState("");
     const [error, setError] = useState(null);
     const [showPassword, setShowPassword] = useState(false);
     const submitButton = useRef(null);
@@ -25,7 +25,7 @@ const Signup = () => {
         if(response.data.success){
           console.log(response.data)
           localStorage.setItem('token', response.data.token);
-          window.location.href = "/home";
+          window.location.href = "/dashboard";
         }else{
           setError(response.data.message);
         }
@@ -106,12 +106,12 @@ const Signup = () => {
                     type="submit"
                     ref={submitButton}
                   >
-                    signup
+                    Signup
                   </button>
                   <p className="text-center mt-2">
                     Don't have an account?{" "}
-                    <Link to="/auth/signup" className="text-blue-500 underline">
-                      signup
+                    <Link to="/auth/login" className="text-blue-500 underline">
+                      login
                     </Link>
                   </p>
                 </form>

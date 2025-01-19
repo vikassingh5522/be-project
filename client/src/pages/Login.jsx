@@ -8,7 +8,7 @@ const Login = () => {
   const [username, setUserName] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState(null);
+  const [role, setRole] = useState("");
   const [error, setError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const submitButton = useRef(null);
@@ -16,7 +16,7 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError(null);
-
+    console.log(username, email, password, role);
     axios.post("http://localhost:5000/auth/login", {username, email, password, role}, {
         headers: {
           'Content-Type': 'application/json',
@@ -25,7 +25,7 @@ const Login = () => {
       if(response.data.success){
         console.log(response.data)
         localStorage.setItem('token', response.data.token);
-        window.location.href = "/home";
+        window.location.href = "/dashboard";
       }else{
         setError(response.data.message);
       }
@@ -37,7 +37,7 @@ const Login = () => {
 
   useEffect(() => {
     if (localStorage.getItem('token')) {
-      window.location.href = "/home";
+      window.location.href = "/dashboard";
     }
   }, []);
 

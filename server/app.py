@@ -237,6 +237,7 @@ def register_user():
 def authenticate_user():
     try:
         data = request.get_json()
+        print(data['username'])
         
         # Check if necessary fields are present
         if "username" not in data or "password" not in data:
@@ -246,35 +247,20 @@ def authenticate_user():
         user_password = data["password"]
         JWT_SECRET = os.getenv("JWT_SECRET")
         
-        # Extract the JWT token from the Authorization header
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith("Bearer "):
-            return jsonify({"success": False, "message": "Missing or malformed token"}), 401
-        
-        token = auth_header.split(' ')[1]
-        
-        # Decode the JWT token
-        try:
-            decoded_token = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-        except jwt.ExpiredSignatureError:
-            return jsonify({"success": False, "message": "Token expired"}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({"success": False, "message": "Invalid token"}), 401
-
         # Check if the user exists
         usersCollection = db["users"]
         user_data = usersCollection.find_one({"username": username})
-
         if user_data:
             # Check if the password matches
             if not bcrypt.checkpw(user_password.encode('utf-8'), user_data['password']):
                 return jsonify({"success": False, "message": "Invalid credentials"}), 401
-
+            token = jwt.encode({"username": user_data['username'], "email": user_data['email'], "role": user_data['role']}, JWT_SECRET)
             return jsonify({"success": True, "message": "Login successful", "token": token}), 200
         else:
             return jsonify({"success": False, "message": "User not found"}), 404
 
     except Exception as e:
+        print(e)
         return jsonify({"success": False, "message": f"An error occurred: {str(e)}"}), 500
     
 
