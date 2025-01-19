@@ -212,7 +212,7 @@ def register_user():
         password = data["password"]
         email = data["email"]
         role = data["role"]
-
+        print(username, password, email, role)
         usersCollection = db["users"]
         existing_user = usersCollection.find_one({"username": username})
         JWT_SECRET = os.getenv("JWT_SECRET")
