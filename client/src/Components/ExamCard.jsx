@@ -19,10 +19,10 @@ const ExamCard = ({ data }) => {
           Duration: {data.duration} minutes
         </p>
           <Link
-            to={"/"}
+            to={"/exam/create"}
             className="block text-center bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition duration-200"
           >
-            Start Exam
+            Create Exam
           </Link>
       </div>
     </div>

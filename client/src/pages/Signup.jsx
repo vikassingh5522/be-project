@@ -108,7 +108,7 @@ const Signup = () => {
                     Signup
                   </button>
                   <p className="text-center mt-2">
-                    Don't have an account?{" "}
+                   Already have an account?{" "}
                     <Link to="/auth/login" className="text-blue-500 underline">
                       login
                     </Link>

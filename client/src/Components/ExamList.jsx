@@ -6,7 +6,7 @@ const ExamList = () => {
   return (
     <>
     <main className='p-4'>
-      <ExamCard data={{title: "C programming", image: img, duration: "30"}}/>
+      <ExamCard data={{title: "C programming", image: img, duration: "30", id: 1234}}/>
     </main>
     </>
   )

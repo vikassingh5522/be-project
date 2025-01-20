@@ -1,7 +1,6 @@
 import React from 'react'
 import SideBar from '../Components/SideBar'
 import ExamList from '../Components/ExamList'
-import { useVerifyToken } from '../hooks/useVerifyToken'
 import DashboardHeader from '../Components/DashboardHeader'
 
 const StudentDashboard = ({user}) => {
@@ -9,7 +8,7 @@ const StudentDashboard = ({user}) => {
     <>
     <section className='min-h-screen bg-slate-50'>
         <div className="flex min-h-screen">
-            <SideBar />
+            <SideBar role={user?.role} />
             <div className="wrap w-full">
             <DashboardHeader user={user?.username} />
             <ExamList />
