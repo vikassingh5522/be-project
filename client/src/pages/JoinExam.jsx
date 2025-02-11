@@ -9,7 +9,7 @@ const JoinExam = () => {
     const handleInput = (e) =>{
         setExamId(e.target.value);
         // regex expression to match 8 character - 4 characters - 4 characters - 4 characters - 12 characters
-        if(/^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$/.test(examId)) {
+        if(/^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}[0-9]{4}-[a-z0-9]{12}$/.test(examId)) {
             setShow(false);
             navigator("/exam/"+examId);
         } else {

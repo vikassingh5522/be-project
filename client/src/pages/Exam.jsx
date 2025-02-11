@@ -40,7 +40,7 @@ function Exam() {
         examStartTime.current = Date.now(); // Store the exam start time
         await goFullscreen();
         setIsLoggingActive(true);
-    };
+    };  
 
     const handleReenterFullscreen = async () => {
         await goFullscreen();
@@ -75,35 +75,8 @@ function Exam() {
         setIsFullscreenPromptVisible(!isFullscreen && examStarted);
     }, [isFullscreen, examStarted]);
 
-    const handleFileChange = (e) => {
-        setFile(e.target.files[0]);
-    };
 
-    const uploadFile = async () => {
-        if (!file) {
-            setError("Please select a file.");
-            return;
-        }
-        const formData = new FormData();
-        formData.append("file", file);
-        try {
-            const response = await fetch("http://localhost:5000/upload-file", {
-                method: "POST",
-                body: formData,
-            });
-            const data = await response.json();
-            if (data.success) {
-                setQuestions(data.questions || []);
-                setError("");
-                setIsDurationInputVisible(true);
-            } else {
-                setError(data.message);
-            }
-        } catch (err) {
-            console.error("Error uploading file:", err);
-            setError("An error occurred while uploading the file.");
-        }
-    };
+
 
     const handleOptionChange = (e) => {
         setSelectedAnswers({
@@ -128,32 +101,8 @@ function Exam() {
         <div className="App min-h-screen bg-gray-100 flex flex-col items-center justify-center">
             <h1 className="text-4xl font-bold mb-6 text-gray-800">Online Exam</h1>
             {examStarted && <Header exitCount={exitCount} />}
-            {!examStarted && (
-                <div className="file-upload-section mb-4">
-                    <input type="file" onChange={handleFileChange} />
-                    <button
-                        onClick={uploadFile}
-                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-4"
-                    >
-                        Upload File
-                    </button>
-                    {error && <p className="text-red-500">{error}</p>}
-                </div>
-            )}
-            {!examStarted && isDurationInputVisible && (
-                <div className="duration-input-section mt-4">
-                    <label className="block text-sm font-medium mb-2">Enter exam duration (in minutes):</label>
-                    <input
-                        type="number"
-                        min="1"
-                        onChange={(e) => setExamDuration(Number(e.target.value))}
-                        className="border rounded px-4 py-2 w-full"
-                    />
-                    {examDuration > 0 && <StartExamButton onClick={startExam} />}
-                </div>
-            )}
-            {examStarted && (
-                
+
+            {examStarted && 
                 <>
                 <Timer initialMinutes={examDuration} onTimeUp={handleTimeUp} />
                     {questions.length > 0 && (
@@ -169,8 +118,8 @@ function Exam() {
                     )}
                     {questions.length === 0 && <p className="text-red-500">No questions loaded. Please restart the exam.</p>}
                     
-                </>
-            )}
+               </>
+            }
             <ToggleableWebcam showWebcam={showWebcam} onToggle={() => setShowWebcam((prev) => !prev)} />
             {examStarted && <KeyLogs keyLogs={keyLogs} />}
             {isFullscreenPromptVisible && (
