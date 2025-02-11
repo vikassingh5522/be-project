@@ -11,6 +11,7 @@ import jwt
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 import bcrypt
+import uuid
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -126,6 +127,57 @@ def upload_file():
         return jsonify({"success": True, "questions": questions}), 200
     except Exception as e:
         return jsonify({"success": False, "message": f"Error processing file: {str(e)}"}), 500
+    
+
+@app.route('/exam/create', methods=['POST'])
+def createExam():
+    uid = uuid.uuid4()
+    try:
+        # Check if a file was sent in the request
+        if 'file' not in request.files:
+            return jsonify({"success": False, "message": "No file part in the request"}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"success": False, "message": "No file selected"}), 400
+
+        if not allowed_file(file.filename):
+            return jsonify({"success": False, "message": "Unsupported file type. Only .txt and .docx are allowed."}), 400
+
+        # Get other form fields (name, duration, date)
+        exam_name = request.form.get('name')
+        exam_duration = request.form.get('duration')
+        exam_date = request.form.get('date')
+
+        if not exam_name or not exam_duration or not exam_date:
+            return jsonify({"success": False, "message": "Missing exam details (name, duration, date)."}), 400
+
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+
+        # Parse the file and get the questions
+        questions = parse_questions(filepath, filename)
+        if not questions:
+            return jsonify({"success": False, "message": "No valid questions found in the file."}), 400
+
+        # Save exam details into the users collection
+        userCollection = db["users"]
+        userCollection.insert_one({
+            "exam": {
+                "id": str(uid),
+                "name": exam_name,
+                "duration": exam_duration,
+                "date": exam_date,
+                "questions": questions
+            }
+        })
+
+        return jsonify({"success": True, "examId": str(uid)}), 200
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Error processing file: {str(e)}"}), 500
+
+
 
 @app.route('/store-keylogs', methods=['POST'])
 def store_keylogs():

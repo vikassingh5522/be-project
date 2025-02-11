@@ -1,5 +1,5 @@
 import React from "react";
-import { FaUser, FaUserFriends, FaBell } from "react-icons/fa";
+import { FaUser, FaUserFriends, FaBell, FaPen } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
 import LogoutButton from "./LogoutButton";
 
@@ -39,6 +39,21 @@ const StudentSideBar = () => {
             >
               <FaUserFriends />
               Friends
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to={"/exam/join"}
+              className={({ isActive }) =>
+                `flex gap-3 items-center p-3  rounded ${
+                  isActive
+                    ? "bg-blue-600 text-white"
+                    : "hover:bg-blue-400 hover:text-white"
+                }`
+              }
+            >
+              <FaPen />
+              Join Exam
             </NavLink>
           </li>
           <li>

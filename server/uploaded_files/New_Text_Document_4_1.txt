@@ -1,0 +1,21 @@
+Who is the Father of the Nation in India?
+a) Jawaharlal Nehru
+b) Mahatma Gandhi
+c) Subhas Chandra Bose
+d) Rabindranath Tagore
+Problem Statement: Print Pranav
+
+What is the capital of France?
+a) Berlin
+b) Madrid
+c) Paris
+d) Rome
+
+Problem Statement: Write a code for xyz.
+
+What is the capital of France?
+a) Berlin
+b) Madrid
+c) Paris
+
+Problem Statement: Write a code for 2+2

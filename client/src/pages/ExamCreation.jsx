@@ -6,39 +6,49 @@ const ExamCreation = () => {
   const [examDuration, setExamDuration] = useState('');
   const [file, setFile] = useState('');
   const [error, setError] = useState('');
+  const [visible, setVisible] = useState(false);
+  const [examId, setExamId] = useState('');
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
 };
 
-  const uploadFile = async () => {
-    if (!file) {
-        setError("Please select a file.");
-        return;
-    }
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-        const response = await fetch("http://localhost:5000/upload-file", {
-            method: "POST",
-            body: formData,
-        });
-        const data = await response.json();
-        if (data.success) {
-            setError("");
-        } else {
-            setError(data.message);
-        }
-    } catch (err) {
-        console.error("Error uploading file:", err);
-        setError("An error occurred while uploading the file.");
-    }
+const uploadFile = async () => {
+  if (!file) {
+      setError("Please select a file.");
+      return;
+  }
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("name", examName);
+  formData.append("duration", examDuration);
+  formData.append("date", examDate);  // Add exam details to FormData
+
+  try {
+      const response = await fetch("http://localhost:5000/exam/create", {
+          method: "POST",
+          body: formData,
+      });
+      const data = await response.json();
+      if (data.success) {
+          setError("");
+          setExamId(data.examId);
+          console.log(data.examId);
+          setVisible(true);
+      } else {
+          setError(data.message);
+      }
+  } catch (err) {
+      console.error("Error uploading file:", err);
+      setError("An error occurred while uploading the file.");
+  }
 };
 
 
   const handleSubmit = (e) => {
     e.preventDefault();
     // Handle form submission logic here
+    uploadFile();
     console.log({ examName, examDate, examDuration });
   };
 
@@ -81,12 +91,29 @@ const ExamCreation = () => {
                     >
                         Upload File
                     </button>
-                    {error && <p className="text-red-500">{error}</p>}
                 </div>
         <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">
           Create Exam
         </button>
+                    {error && <p className="text-red-500">{error}</p>}
       </form>
+    { 
+    // create copy button at top right
+           visible && <button onClick={() => navigator.clipboard.writeText(examId)} className="absolute top-2 right-2 bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition duration-200">Copy Exam ID</button>
+    }
+      {
+    // show success message after successful exam creation
+          visible && <div className="text-center mt-4">
+              <p className="text-green-500">Exam created successfully!</p>
+              <p>Exam ID: {examId}</p>
+            </div>
+      }
+        {
+        // show error message if exam creation fails
+        error && <div className="text-center mt-4">
+            <p className="text-red-500">{error}</p>
+          </div>
+        }
     </div>
   )
 }

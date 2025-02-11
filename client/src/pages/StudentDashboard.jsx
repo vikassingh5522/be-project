@@ -10,8 +10,8 @@ const StudentDashboard = ({user}) => {
         <div className="flex min-h-screen">
             <SideBar role={user?.role} />
             <div className="wrap w-full">
-            <DashboardHeader user={user?.username} />
-            <ExamList />
+            <DashboardHeader username={user?.username} />
+            <ExamList role={user?.role}/>
 
             </div>
         </div>

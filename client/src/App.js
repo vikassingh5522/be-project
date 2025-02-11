@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Exam from './pages/Exam'
 import ExamCreation from './pages/ExamCreation'
+import JoinExam from './pages/JoinExam'
 
 const App = () => {
     
@@ -19,6 +20,7 @@ const App = () => {
                 <Route exact path="/dashboard" element={<Dashboard />} />
                 <Route exact path="/exam/:id" element={<Exam />} />
                 <Route exact path="/exam/create" element={<ExamCreation />} /> 
+                <Route exact path="/exam/join" element={<JoinExam />} /> 
             </Routes>
         </BrowserRouter>
     </div>

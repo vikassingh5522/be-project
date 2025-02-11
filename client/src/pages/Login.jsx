@@ -32,7 +32,7 @@ const Login = () => {
       if(response.data.success){
         console.log(response.data)
         localStorage.setItem('token', response.data.token);
-        role == 'teacher' ? window.location.href = "/dashboard" : window.location.href ="/home";
+        window.location.href = "/dashboard"
         
       }else{
         setError(response.data.message);

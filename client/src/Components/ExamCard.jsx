@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-const ExamCard = ({ data }) => {
+const ExamCard = ({ data, role }) => {
   return (
     <div className="max-w-sm w-full bg-white border border-gray-300 rounded-lg shadow-md overflow-hidden">
       <img
@@ -18,12 +18,21 @@ const ExamCard = ({ data }) => {
         <p className="text-gray-500 text-sm mb-4">
           Duration: {data.duration} minutes
         </p>
+        { role === 'teacher' ?
           <Link
             to={"/exam/create"}
             className="block text-center bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition duration-200"
           >
             Create Exam
           </Link>
+          :
+          <Link
+            to={"/exam/create"}
+            className="block text-center bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition duration-200"
+          >
+            Start Exam
+          </Link>
+        }
       </div>
     </div>
   );
