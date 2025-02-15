@@ -107,11 +107,9 @@ def submit_code():
 def upload_file():
     if 'file' not in request.files:
         return jsonify({"success": False, "message": "No file part in the request"}), 400
-
     file = request.files['file']
     if file.filename == '':
         return jsonify({"success": False, "message": "No file selected"}), 400
-
     if not allowed_file(file.filename):
         return jsonify({"success": False, "message": "Unsupported file type. Only .txt and .docx are allowed."}), 400
 
@@ -120,13 +118,31 @@ def upload_file():
     file.save(filepath)
 
     try:
-        questions = parse_questions(filepath, filename)
-        if not questions:
-            return jsonify({"success": False, "message": "No valid questions found in the file."}), 400
+        exam_name = request.form.get('name')
+        exam_duration = request.form.get('duration')
+        exam_date = request.form.get('date')
 
-        return jsonify({"success": True, "questions": questions}), 200
+        if exam_name and exam_duration and exam_date:
+            result = parse_questions(filepath, filename)  # parse_questions now returns a dict with examId and questions
+            uid = result["examId"]
+            questions = result["questions"]
+            exam = {
+                "id": uid,
+                "name": exam_name,
+                "duration": exam_duration,
+                "date": exam_date,
+                "questions": questions
+            }
+            userCollection = db["users"]
+            userCollection.insert_one({"exam": exam})
+            return jsonify({"success": True, "examId": uid}), 200
+        else:
+            result = parse_questions(filepath, filename)
+            questions = result["questions"]
+            return jsonify({"success": True, "questions": questions}), 200
     except Exception as e:
         return jsonify({"success": False, "message": f"Error processing file: {str(e)}"}), 500
+
     
 
 @app.route('/exam/create', methods=['POST'])
@@ -198,7 +214,9 @@ def store_keylogs():
         return jsonify({"success": False, "message": f"Error storing keylogs: {str(e)}"}), 500
 
 
-def parse_questions(filepath, filename):
+def parse_questions(filepath, filename, uid=None):
+    if uid is None:
+        uid = str(uuid.uuid4())
     questions = []
     content = ""
     if filename.endswith('.txt'):
@@ -207,40 +225,29 @@ def parse_questions(filepath, filename):
     elif filename.endswith('.docx'):
         doc = docx.Document(filepath)
         content = "\n".join([p.text for p in doc.paragraphs])
-
     lines = content.split('\n')
     current_question = None
     current_options = []
-    question_type = 'mcq'  # Default to MCQ
-
+    question_type = 'mcq'
     for line in lines:
         line = line.strip()
         if 'Problem Statement:' in line:
-            # Save the previous question if it exists
             if current_question:
                 questions.append({"type": question_type, "question": current_question, "options": current_options})
-            # Start a new coding question
             current_question = line
             current_options = []
             question_type = 'coding'
         elif line.endswith('?'):
-            # Save the previous question if it exists
             if current_question:
                 questions.append({"type": question_type, "question": current_question, "options": current_options})
-            # Start a new MCQ
             current_question = line
             current_options = []
-            question_type = 'mcq'  # Reset to default type
+            question_type = 'mcq'
         elif line.startswith(('a)', 'b)', 'c)', 'd)')) and question_type == 'mcq':
-            # Add options to the current MCQ
             current_options.append(line)
-
-    # Add the last question if it exists
     if current_question:
         questions.append({"type": question_type, "question": current_question, "options": current_options})
-
-    return questions
-
+    return {"examId": uid, "questions": questions}
 
      
 

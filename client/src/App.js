@@ -18,7 +18,7 @@ const App = () => {
                 <Route exact path="/auth/login" element={<Login />}/>
                 <Route exact path="/auth/signup" element={<Signup />} />
                 <Route exact path="/dashboard" element={<Dashboard />} />
-                <Route exact path="/exam/:id" element={<Exam />} />
+                <Route exact path="/exam/:examId" element={<Exam />} />
                 <Route exact path="/exam/create" element={<ExamCreation />} /> 
                 <Route exact path="/exam/join" element={<JoinExam />} /> 
             </Routes>
