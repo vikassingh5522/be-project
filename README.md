@@ -66,10 +66,3 @@ python app.py
 - 🚧 Network interruption handling
 - 🚧 WebSocket implementation
 
-## Contributing
-
-Contributions are welcome! Please check our todo list for current priorities.
-
-## License
-
-[Add your license here]
