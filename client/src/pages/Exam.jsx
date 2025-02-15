@@ -1,132 +1,163 @@
-import React, { useState, useEffect, useRef } from 'react';
-import useFullscreenManager from '../hooks/useFullscreenManager';
-import { useTabFocusMonitor } from '../hooks/useTabFocusMonitor';
-import { useKeyLogger } from '../hooks/useKeyLogger';
-import Header from '../Components/Header';
-import StartExamButton from '../Components/StartExamButton';
-import ExamContainer from '../Components/ExamContainer';
-import KeyLogs from '../Components/KeyLogs';
-import FullscreenPrompt from '../Components/FullscreenPrompt';
-import ToggleableWebcam from '../Components/ToggleableWebcam';
-import Timer from '../Components/Timer';
+import React, { useState, useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
+import useFullscreenManager from "../hooks/useFullscreenManager";
+import { useTabFocusMonitor } from "../hooks/useTabFocusMonitor";
+import { useKeyLogger } from "../hooks/useKeyLogger";
+import Header from "../Components/Header";
+import StartExamButton from "../Components/StartExamButton";
+import ExamContainer from "../Components/ExamContainer";
+import KeyLogs from "../Components/KeyLogs";
+import FullscreenPrompt from "../Components/FullscreenPrompt";
+import ToggleableWebcam from "../Components/ToggleableWebcam";
+import Timer from "../Components/Timer";
 
 function Exam() {
-    const { isFullscreen, goFullscreen, exitCount } = useFullscreenManager();
-    const [examStarted, setExamStarted] = useState(false);
-    const [isLoggingActive, setIsLoggingActive] = useState(false);
-    const [keyLogs, setKeyLogs] = useState("");
-    const [showWebcam, setShowWebcam] = useState(true);
-    const [isFullscreenPromptVisible, setIsFullscreenPromptVisible] = useState(false);
-    const [file, setFile] = useState(null);
-    const [questions, setQuestions] = useState([]);
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [selectedAnswers, setSelectedAnswers] = useState({});
-    const [error, setError] = useState('');
-    const [examDuration, setExamDuration] = useState(0);
-    const [isDurationInputVisible, setIsDurationInputVisible] = useState(false);
+  const { examId } = useParams();
+  const { isFullscreen, goFullscreen, exitCount } = useFullscreenManager();
+  const [examStarted, setExamStarted] = useState(false);
+  const [isLoggingActive, setIsLoggingActive] = useState(false);
+  const [keyLogs, setKeyLogs] = useState("");
+  const [showWebcam, setShowWebcam] = useState(true);
+  const [isFullscreenPromptVisible, setIsFullscreenPromptVisible] = useState(false);
+  const [questions, setQuestions] = useState([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState({});
+  const [error, setError] = useState("");
+  const [examDuration, setExamDuration] = useState(0);
 
-    const examStartTime = useRef(null); // Ref to track the exam start time
+  const examStartTime = useRef(null);
 
-    useTabFocusMonitor();
-    useKeyLogger(isLoggingActive, setKeyLogs);
+  useTabFocusMonitor();
+  useKeyLogger(isLoggingActive, setKeyLogs);
 
-    const startExam = async () => {
-        if (questions.length === 0) {
-            setError("No questions available. Please upload a valid file.");
-            return;
-        }
-        localStorage.setItem("exitCount", 0);
-        setExamStarted(true);
-        examStartTime.current = Date.now(); // Store the exam start time
-        await goFullscreen();
-        setIsLoggingActive(true);
-    };  
-
-    const handleReenterFullscreen = async () => {
-        await goFullscreen();
-    };
-
-    const handleTimeUp = () => {
-        alert('Time is up! The exam will now be submitted.');
-        handleSubmit();
-    };
-
-    const calculateTimeTaken = () => {
-        const timeTakenInSeconds = Math.floor((Date.now() - examStartTime.current) / 1000);
-        const minutes = Math.floor(timeTakenInSeconds / 60);
-        const seconds = timeTakenInSeconds % 60;
-        return `${minutes} minutes and ${seconds} seconds`;
-    };
-
-    const handleSubmit = () => {
-        const timeTaken = calculateTimeTaken();
-        alert(`Exam submitted successfully! You completed the exam in ${timeTaken}.`);
-        console.log('Selected Answers:', selectedAnswers);
-        setExamStarted(false);
-        setQuestions([]);
-        setCurrentQuestionIndex(0);
-        setSelectedAnswers({});
-        setExamDuration(0);
-        setIsDurationInputVisible(false);
-        setError('');
-    };
-
-    useEffect(() => {
-        setIsFullscreenPromptVisible(!isFullscreen && examStarted);
-    }, [isFullscreen, examStarted]);
+  // Fetch exam details using the examId provided by the student.
+  useEffect(() => {
+    if (examId) {
+        fetch(`http://localhost:5000/exam/details/${examId}`)
+          .then((res) => res.json())
+          .then((data) => {
+              console.log("Exam details response:", data);
+              if (data.success) {
+                  setQuestions(data.questions);
+                  setExamDuration(data.duration);
+              } else {
+                  setError(data.message);
+              }
+          })
+          .catch((err) => {
+              setError("Error fetching exam details");
+              console.error(err);
+          });
+    }
+}, [examId]);
 
 
+  const startExam = async () => {
+    if (questions.length === 0) {
+      setError("No questions available for this exam.");
+      return;
+    }
+    localStorage.setItem("exitCount", 0);
+    setExamStarted(true);
+    examStartTime.current = Date.now();
+    await goFullscreen();
+    setIsLoggingActive(true);
+  };
 
+  const handleReenterFullscreen = async () => {
+    await goFullscreen();
+  };
 
-    const handleOptionChange = (e) => {
-        setSelectedAnswers({
-            ...selectedAnswers,
-            [currentQuestionIndex]: e.target.value,
-        });
-    };
+  const handleTimeUp = () => {
+    alert("Time is up! The exam will now be submitted.");
+    handleSubmit();
+  };
 
-    const handleNext = () => {
-        if (currentQuestionIndex < questions.length - 1) {
-            setCurrentQuestionIndex((prev) => prev + 1);
-        }
-    };
+  const calculateTimeTaken = () => {
+    const timeTakenInSeconds = Math.floor((Date.now() - examStartTime.current) / 1000);
+    const minutes = Math.floor(timeTakenInSeconds / 60);
+    const seconds = timeTakenInSeconds % 60;
+    return `${minutes} minutes and ${seconds} seconds`;
+  };
 
-    const handlePrevious = () => {
-        if (currentQuestionIndex > 0) {
-            setCurrentQuestionIndex((prev) => prev - 1);
-        }
-    };
+  const handleSubmit = () => {
+    const timeTaken = calculateTimeTaken();
+    alert(`Exam submitted successfully! You completed the exam in ${timeTaken}.`);
+    console.log("Selected Answers:", selectedAnswers);
+    setExamStarted(false);
+    setQuestions([]);
+    setCurrentQuestionIndex(0);
+    setSelectedAnswers({});
+    setExamDuration(0);
+    setError("");
+  };
 
-    return (
-        <div className="App min-h-screen bg-gray-100 flex flex-col items-center justify-center">
-            <h1 className="text-4xl font-bold mb-6 text-gray-800">Online Exam</h1>
-            {examStarted && <Header exitCount={exitCount} />}
+  useEffect(() => {
+    setIsFullscreenPromptVisible(!isFullscreen && examStarted);
+  }, [isFullscreen, examStarted]);
 
-            {examStarted && 
-                <>
-                <Timer initialMinutes={examDuration} onTimeUp={handleTimeUp} />
-                    {questions.length > 0 && (
-                        <ExamContainer
-                            questions={questions}
-                            currentQuestionIndex={currentQuestionIndex}
-                            handleOptionChange={handleOptionChange}
-                            selectedAnswers={selectedAnswers}
-                            onNext={handleNext}
-                            onPrevious={handlePrevious}
-                            onSubmit={handleSubmit}
-                        />
-                    )}
-                    {questions.length === 0 && <p className="text-red-500">No questions loaded. Please restart the exam.</p>}
-                    
-               </>
-            }
-            <ToggleableWebcam showWebcam={showWebcam} onToggle={() => setShowWebcam((prev) => !prev)} />
-            {examStarted && <KeyLogs keyLogs={keyLogs} />}
-            {isFullscreenPromptVisible && (
-                <FullscreenPrompt onReenter={handleReenterFullscreen} />
-            )}
+  const handleOptionChange = (e) => {
+    setSelectedAnswers({
+      ...selectedAnswers,
+      [currentQuestionIndex]: e.target.value,
+    });
+  };
+
+  const handleNext = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex((prev) => prev - 1);
+    }
+  };
+
+  return (
+    <div className="App min-h-screen bg-gray-100 flex flex-col items-center justify-center">
+      <h1 className="text-4xl font-bold mb-6 text-gray-800">Online Exam</h1>
+      {examStarted && <Header exitCount={exitCount} />}
+
+      {/* Before the exam starts, show exam details and a start exam button */}
+      {!examStarted && !error && questions.length > 0 && (
+        <div className="text-center mb-6">
+          <h2 className="text-2xl mb-2">Exam Ready: {examId}</h2>
+          <p className="mb-4">
+            This exam contains {questions.length} questions and lasts for {examDuration} minutes.
+          </p>
+          <StartExamButton onClick={startExam} />
         </div>
-    );
+      )}
+
+      {error && <p className="text-red-500 mb-4">{error}</p>}
+
+      {/* Once the exam has started, show the timer and exam container */}
+      {examStarted && (
+        <>
+          <Timer initialMinutes={examDuration} onTimeUp={handleTimeUp} />
+          {questions.length > 0 ? (
+            <ExamContainer
+              questions={questions}
+              currentQuestionIndex={currentQuestionIndex}
+              handleOptionChange={handleOptionChange}
+              selectedAnswers={selectedAnswers}
+              onNext={handleNext}
+              onPrevious={handlePrevious}
+              onSubmit={handleSubmit}
+            />
+          ) : (
+            <p className="text-red-500">No questions loaded. Please contact your instructor.</p>
+          )}
+        </>
+      )}
+
+      <ToggleableWebcam showWebcam={showWebcam} onToggle={() => setShowWebcam((prev) => !prev)} />
+      {examStarted && <KeyLogs keyLogs={keyLogs} />}
+      {isFullscreenPromptVisible && <FullscreenPrompt onReenter={handleReenterFullscreen} />}
+    </div>
+  );
 }
 
 export default Exam;

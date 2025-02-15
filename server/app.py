@@ -341,5 +341,19 @@ def verify_token():
         print(e)
         return jsonify({"success": False, "message": f"An error occurred: {str(e)}"}), 500    
 
+@app.route('/exam/details/<exam_id>', methods=['GET'])
+def get_exam_details(exam_id):
+    userCollection = db["users"]
+    exam_doc = userCollection.find_one({"exam.id": exam_id}, {"_id": 0, "exam": 1})
+    if exam_doc and "exam" in exam_doc:
+        # Return the questions and duration (ensure the duration is numeric if needed)
+        return jsonify({
+            "success": True,
+            "questions": exam_doc["exam"]["questions"],
+            "duration": int(exam_doc["exam"]["duration"])
+        }), 200
+    return jsonify({"success": False, "message": "Exam not found"}), 404
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
