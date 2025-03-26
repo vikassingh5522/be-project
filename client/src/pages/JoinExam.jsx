@@ -1,9 +1,13 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { QRCodeCanvas } from "qrcode.react";
 
 const JoinExam = () => {
-  const [examId, setExamId] = React.useState("");
-  const [isValidExamId, setIsValidExamId] = React.useState(false);
+  const [examId, setExamId] = useState("");
+  const [isValidExamId, setIsValidExamId] = useState(false);
+  const [examToken, setExamToken] = useState(null);
+  const [mobileConfirmed, setMobileConfirmed] = useState(false);
+  const [pairingStarted, setPairingStarted] = useState(false);
   const navigate = useNavigate();
 
   const handleInput = (e) => {
@@ -14,10 +18,65 @@ const JoinExam = () => {
     setIsValidExamId(regex.test(id));
   };
 
-  const handleProceed = () => {
-    // Navigate to the exam page using the exam id.
-    navigate("/exam/" + examId);
+  // Generate the exam token by calling /exam/connect.
+  const startPairing = async () => {
+    const loginToken = localStorage.getItem("token"); // Assumes user is logged in.
+    try {
+      const response = await fetch("http://192.168.1.36:5000/exam/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: loginToken, examId })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setExamToken(data.examToken);
+        setPairingStarted(true);
+      } else {
+        console.error("Failed to generate exam token:", data.message);
+      }
+    } catch (err) {
+      console.error("Error generating exam token:", err);
+    }
   };
+
+  // Poll the backend to check for mobile confirmation.
+  useEffect(() => {
+    let interval;
+    if (pairingStarted && examToken) {
+      interval = setInterval(async () => {
+        try {
+          const res = await fetch(
+            `http://192.168.1.36:5000/mobile/status?token=${examToken}`
+          );
+          const statusData = await res.json();
+          if (statusData.success && statusData.mobile_confirmed) {
+            setMobileConfirmed(true);
+            clearInterval(interval);
+          } else {
+            setMobileConfirmed(false);
+          }
+        } catch (error) {
+          console.error("Error checking mobile status:", error);
+        }
+      }, 2000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [pairingStarted, examToken]);
+
+  const handleProceed = () => {
+    if (mobileConfirmed) {
+      navigate("/exam/" + examId);
+    } else {
+      alert("Mobile device is not confirmed. Please ensure you have pressed the confirm button on your mobile device.");
+    }
+  };
+
+  // Build the mobile monitor URL.
+  const mobileMonitorURL = examToken 
+    ? `http://192.168.1.36:5000/static/mobile_monitor.html?token=${examToken}` 
+    : "";
 
   return (
     <div className="flex justify-center items-center min-h-screen">
@@ -37,16 +96,42 @@ const JoinExam = () => {
           {examId !== "" && !isValidExamId && (
             <p className="text-red-400">Enter valid ID!</p>
           )}
-          {isValidExamId && (
+          {isValidExamId && !pairingStarted && (
             <button
               type="button"
-              onClick={handleProceed}
+              onClick={startPairing}
               className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             >
-              Proceed to Exam
+              Generate Mobile Pairing QR
             </button>
           )}
         </form>
+        {pairingStarted && examToken && (
+          <div className="mt-4 p-4 bg-white shadow rounded">
+            <p className="mb-2">
+              Scan this QR code with your mobile device to confirm your presence:
+            </p>
+            <QRCodeCanvas value={mobileMonitorURL} size={200} />
+            <p className="text-sm mt-2">
+              Mobile URL:{" "}
+              <a href={mobileMonitorURL} target="_blank" rel="noreferrer">
+                {mobileMonitorURL}
+              </a>
+            </p>
+            <p className="mt-2">
+              {mobileConfirmed ? "Mobile device confirmed!" : "Waiting for mobile confirmation..."}
+            </p>
+          </div>
+        )}
+        {isValidExamId && mobileConfirmed && (
+          <button
+            type="button"
+            onClick={handleProceed}
+            className="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          >
+            Proceed to Exam
+          </button>
+        )}
       </div>
     </div>
   );

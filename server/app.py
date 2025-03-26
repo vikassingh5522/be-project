@@ -13,7 +13,8 @@ from pymongo.server_api import ServerApi
 import bcrypt
 import uuid
 from dotenv import load_dotenv
-
+import datetime
+from dateutil import parser
 load_dotenv()
 
 
@@ -360,6 +361,132 @@ def get_exam_details(exam_id):
             "duration": int(exam_doc["exam"]["duration"])
         }), 200
     return jsonify({"success": False, "message": "Exam not found"}), 404
+
+@app.route('/exam/connect', methods=['POST'])
+def exam_connect():
+    """
+    Given a valid login token and an exam id (from the desktop session),
+    generate a new token that includes the exam id. This token is used by the mobile device.
+    """
+    data = request.get_json()
+    login_token = data.get('token')
+    exam_id = data.get('examId')
+    
+    if not login_token or not exam_id:
+        return jsonify({"success": False, "message": "Missing token or exam id"}), 400
+
+    JWT_SECRET = os.getenv("JWT_SECRET")
+    try:
+        decoded = jwt.decode(login_token, JWT_SECRET, algorithms=["HS256"])
+    except Exception as e:
+        return jsonify({"success": False, "message": "Invalid login token"}), 401
+    
+    # Create a new token that includes the exam id
+    new_payload = {
+        "username": decoded.get("username"),
+        "email": decoded.get("email"),
+        "role": decoded.get("role"),
+        "examId": exam_id
+    }
+    exam_token = jwt.encode(new_payload, JWT_SECRET, algorithm="HS256")
+    return jsonify({"success": True, "examToken": exam_token}), 200
+
+
+@app.route('/mobile/heartbeat', methods=['POST'])
+def mobile_heartbeat():
+    """
+    Receives heartbeat and event logs (e.g., focus, blur, resize) from the mobile monitor page.
+    Stores each log in the MongoDB collection and prints the log to the console.
+    """
+    data = request.get_json()
+    token = data.get('token')
+    if not token:
+        return jsonify({"success": False, "message": "Token missing"}), 400
+
+    JWT_SECRET = os.getenv("JWT_SECRET")
+    try:
+        decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        return jsonify({"success": False, "message": "Token expired"}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({"success": False, "message": "Invalid token"}), 401
+
+    # Build the mobile activity log
+    mobile_log = {
+        "username": decoded.get("username"),
+        "examId": decoded.get("examId", "unknown"),
+        "timestamp": data.get("timestamp"),
+        "event": data.get("event", "heartbeat"),
+        "tabFocus": data.get("tabFocus"),      # True or False
+        "screenWidth": data.get("screenWidth"),
+        "screenHeight": data.get("screenHeight")
+    }
+
+    # Print the log to the console for debugging
+    print("Mobile activity log:", mobile_log)
+
+    # Store the log in MongoDB and capture the inserted ID
+    logs_collection = db["mobile_activity_logs"]
+    result = logs_collection.insert_one(mobile_log)
+    # Convert the ObjectId to string so it can be serialized
+    mobile_log["_id"] = str(result.inserted_id)
+
+    # Return the log back in the response for confirmation
+    return jsonify({"success": True, "message": "Mobile activity logged", "log": mobile_log})
+
+
+@app.route('/mobile/confirm', methods=['POST'])
+def mobile_confirm():
+    """
+    Receives a mobile confirmation event and updates the exam session
+    to mark mobile as confirmed.
+    """
+    data = request.get_json()
+    token = data.get('token')
+    if not token:
+        return jsonify({"success": False, "message": "Token missing"}), 400
+    
+    JWT_SECRET = os.getenv("JWT_SECRET")
+    try:
+        decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+    except Exception as e:
+        return jsonify({"success": False, "message": "Invalid token"}), 401
+
+    username = decoded.get("username")
+    exam_id = decoded.get("examId")
+    
+    # Upsert a record in a dedicated collection (exam_sessions)
+    sessions_collection = db["exam_sessions"]
+    sessions_collection.update_one(
+        {"username": username, "examId": exam_id},
+        {"$set": {"mobile_confirmed": True, "confirmed_at": datetime.datetime.utcnow()}},
+        upsert=True
+    )
+    return jsonify({"success": True, "message": "Mobile confirmed successfully."}), 200
+
+@app.route('/mobile/status', methods=['GET'])
+def mobile_status():
+    """
+    Checks if the mobile confirmation flag has been set for the given exam token.
+    Expects the token as a query parameter.
+    """
+    token = request.args.get('token')
+    if not token:
+        return jsonify({"success": False, "message": "Token missing"}), 400
+
+    JWT_SECRET = os.getenv("JWT_SECRET")
+    try:
+        decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+    except Exception as e:
+        return jsonify({"success": False, "message": "Invalid token"}), 401
+
+    username = decoded.get("username")
+    exam_id = decoded.get("examId")
+    
+    sessions_collection = db["exam_sessions"]
+    session = sessions_collection.find_one({"username": username, "examId": exam_id})
+    mobile_confirmed = session.get("mobile_confirmed") if session else False
+    return jsonify({"success": True, "mobile_confirmed": mobile_confirmed})
 
 
 if __name__ == '__main__':

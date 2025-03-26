@@ -1,6 +1,7 @@
 // exam.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
+import {QRCodeCanvas} from 'qrcode.react';
 import useFullscreenManager from '../hooks/useFullscreenManager';
 import { useTabFocusMonitor } from '../hooks/useTabFocusMonitor';
 import { useKeyLogger } from '../hooks/useKeyLogger';
@@ -25,6 +26,7 @@ function Exam() {
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [error, setError] = useState('');
   const [examDuration, setExamDuration] = useState(0);
+  const [examToken, setExamToken] = useState(null); // Holds token for mobile monitoring
 
   const examStartTime = useRef(null); // Track exam start time
 
@@ -51,6 +53,27 @@ function Exam() {
         });
     }
   }, [examId]);
+
+  // When exam starts, generate an exam token for mobile monitoring via /exam/connect
+  useEffect(() => {
+    if (examStarted) {
+      const loginToken = localStorage.getItem("token"); // Assumes login token is stored in localStorage
+      fetch("http://localhost:5000/exam/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: loginToken, examId })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if(data.success) {
+          setExamToken(data.examToken);
+        } else {
+          console.error("Failed to generate exam token:", data.message);
+        }
+      })
+      .catch(err => console.error("Error generating exam token:", err));
+    }
+  }, [examStarted, examId]);
 
   const startExam = async () => {
     if (questions.length === 0) {
@@ -90,6 +113,7 @@ function Exam() {
     setSelectedAnswers({});
     setExamDuration(0);
     setError('');
+    setExamToken(null); // Clear exam token after submission
   };
 
   useEffect(() => {
@@ -115,11 +139,17 @@ function Exam() {
     }
   };
 
+  // Build the mobile monitor URL using the exam token.
+  // This URL points to your mobile monitor page (for example, at /static/mobile_monitor.html).
+  const mobileMonitorURL = examToken 
+    ? `http://192.168.1.36:5000/static/mobile_monitor.html?token=${examToken}` 
+    : "";
+
   return (
     <div className="App min-h-screen bg-gray-100 flex flex-col items-center justify-center">
       <h1 className="text-4xl font-bold mb-6 text-gray-800">Online Exam</h1>
       {error && <p className="text-red-500">{error}</p>}
-      {/* If exam details are loaded and exam hasn't started, show exam info & the Attempt Exam button */}
+      {/* Before the exam starts */}
       {!examStarted && (
         <div>
           <p className="mb-4">Exam ID: {examId}</p>
@@ -127,7 +157,7 @@ function Exam() {
           <StartExamButton onClick={startExam} />
         </div>
       )}
-      {/* Once the exam has started, show the Timer and Exam container */}
+      {/* When the exam is active */}
       {examStarted && (
         <>
           <Header exitCount={exitCount}/>
@@ -144,6 +174,19 @@ function Exam() {
             />
           ) : (
             <p className="text-red-500">No questions loaded. Please contact the administrator.</p>
+          )}
+          {/* QR code for pairing mobile monitor */}
+          {examToken && (
+            <div className="mt-4 p-4 bg-white shadow rounded">
+              <p className="mb-2">Scan this QR code with your mobile device for exam monitoring:</p>
+              <QRCodeCanvas value={mobileMonitorURL} size={200} />
+              <p className="text-sm mt-2">
+                Mobile URL:{" "}
+                <a href={mobileMonitorURL} target="_blank" rel="noreferrer">
+                  {mobileMonitorURL}
+                </a>
+              </p>
+            </div>
           )}
         </>
       )}
