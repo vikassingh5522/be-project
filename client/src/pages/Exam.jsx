@@ -12,6 +12,8 @@ import KeyLogs from '../Components/KeyLogs';
 import FullscreenPrompt from '../Components/FullscreenPrompt';
 import ToggleableWebcam from '../Components/ToggleableWebcam';
 import Timer from '../Components/Timer';
+import AudioRecorder from "../Components/AudioRec";
+
 
 function Exam() {
   const { examId } = useParams();
@@ -27,7 +29,7 @@ function Exam() {
   const [error, setError] = useState('');
   const [examDuration, setExamDuration] = useState(0);
   const [examToken, setExamToken] = useState(null); // Holds token for mobile monitoring
-
+  const [noiseAlert, setNoiseAlert] = useState(false);
   const examStartTime = useRef(null); // Track exam start time
 
   useTabFocusMonitor();
@@ -82,7 +84,7 @@ function Exam() {
     }
     localStorage.setItem("exitCount", 0);
     setExamStarted(true);
-    examStartTime.current = Date.now();
+    examStartTime.current = new Date();
     await goFullscreen();
     setIsLoggingActive(true);
   };
@@ -103,22 +105,93 @@ function Exam() {
     return `${minutes} minutes and ${seconds} seconds`;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const timeTaken = calculateTimeTaken();
-    alert(`Exam submitted successfully! You completed the exam in ${timeTaken}.`);
+    
+    // Calculate score based on selected answers and correct answers (assumes questions array contains correctAnswer for MCQs)
+    let score = 0;
+  questions.forEach((q, index) => {
+    if (q.type === 'mcq') {
+      if (
+        selectedAnswers[index] &&
+        q.correctAnswer &&
+        selectedAnswers[index].toLowerCase().includes(q.correctAnswer.toLowerCase())
+      ) {
+        score += 2; // MCQ score
+      }
+    } else if (q.type === 'coding') {
+      // For now, award full points if an answer is provided.
+      if (selectedAnswers[index]) {
+        score += 5;
+      }
+    }
+  });
+  
+    alert(`Exam submitted successfully! You completed the exam in ${timeTaken}. Your score is ${score}.`);
     console.log('Selected Answers:', selectedAnswers);
+
+    const payload = {
+      examId,
+      username: localStorage.getItem("username"), // Ensure username is stored on login
+      examStartTime: examStartTime.current.toISOString(), // Convert to ISO string
+      answers: selectedAnswers, // e.g., { "0": "b", "1": "print('Hello')" }
+      abnormalAudios: [] // Add any abnormal audio alerts if available
+      // score will be computed on the server for MCQs
+    };
+    
+    // Post the exam result to the backend for attempted exams storage.
+    try {
+      const response = await fetch("http://localhost:5000/exam/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+      console.log("Exam submission result:", result);
+    } catch (err) {
+      console.error("Error submitting exam:", err);
+    }
+    
+    // Clear exam state after submission
     setExamStarted(false);
     setQuestions([]);
     setCurrentQuestionIndex(0);
     setSelectedAnswers({});
     setExamDuration(0);
-    setError('');
-    setExamToken(null); // Clear exam token after submission
+    setError("");
+    setExamToken(null);
   };
 
   useEffect(() => {
     setIsFullscreenPromptVisible(!isFullscreen && examStarted);
   }, [isFullscreen, examStarted]);
+
+  useEffect(() => {
+    let noiseInterval;
+    if (examStarted) {
+      noiseInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`http://localhost:5000/exam/noise-alert?examId=${examId}&token=${examToken}`);
+          const data = await res.json();
+          if (data.abnormal && data.speaker_count >= 2) {
+            setNoiseAlert(true);
+            // Clear polling if an alert is found and show a prompt after a delay
+            clearInterval(noiseInterval);
+            setTimeout(() => {
+              alert("Alert: Abnormal noise detected in your exam environment!");
+            }, 3000);
+          } else {
+            setNoiseAlert(false);
+          }
+        } catch (err) {
+          console.error("Error checking noise alert:", err);
+        }
+      }, 15000); // Poll every 15 seconds
+    }
+    return () => {
+      if (noiseInterval) clearInterval(noiseInterval);
+    };
+  }, [examStarted, examId, examToken]);
 
   const handleOptionChange = (e) => {
     setSelectedAnswers({
@@ -142,7 +215,7 @@ function Exam() {
   // Build the mobile monitor URL using the exam token.
   // This URL points to your mobile monitor page (for example, at /static/mobile_monitor.html).
   const mobileMonitorURL = examToken 
-    ? `http://192.168.1.36:5000/static/mobile_monitor.html?token=${examToken}` 
+    ? `http://localhost:5000/static/mobile_monitor.html?token=${examToken}` 
     : "";
 
   return (
@@ -162,6 +235,9 @@ function Exam() {
         <>
           <Header exitCount={exitCount}/>
           <Timer initialMinutes={examDuration} onTimeUp={handleTimeUp} />
+          <AudioRecorder examId={examId} token={examToken} />
+          {noiseAlert && <div className="alert">Abnormal noise detected in your exam environment!</div>}
+        
           {questions.length > 0 ? (
             <ExamContainer
               questions={questions}
@@ -175,7 +251,7 @@ function Exam() {
           ) : (
             <p className="text-red-500">No questions loaded. Please contact the administrator.</p>
           )}
-          {/* QR code for pairing mobile monitor */}
+         { /*
           {examToken && (
             <div className="mt-4 p-4 bg-white shadow rounded">
               <p className="mb-2">Scan this QR code with your mobile device for exam monitoring:</p>
@@ -187,7 +263,7 @@ function Exam() {
                 </a>
               </p>
             </div>
-          )}
+          )}*/}
         </>
       )}
       <ToggleableWebcam showWebcam={showWebcam} onToggle={() => setShowWebcam(prev => !prev)} />

@@ -45,7 +45,7 @@
         screenHeight: window.innerHeight
       };
 
-      fetch('http://192.168.1.36:5000/mobile/heartbeat', {
+      fetch('http://192.168.1.34:5000/mobile/heartbeat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -62,7 +62,7 @@
         timestamp: new Date().toISOString(),
         event: 'confirm'
       };
-      fetch('http://192.168.1.36:5000/mobile/confirm', {
+      fetch('http://192.168.1.34:5000/mobile/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -80,7 +80,7 @@
     // Send a heartbeat every 5 seconds.
     setInterval(() => {
       sendMobileEvent('heartbeat');
-    }, 5000);
+    }, 10000);
 
     // Monitor focus events.
     window.addEventListener('focus', () => {

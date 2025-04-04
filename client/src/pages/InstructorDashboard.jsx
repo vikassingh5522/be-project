@@ -1,23 +1,23 @@
-import React from 'react'
-import SideBar from '../Components/SideBar'
-import ExamList from '../Components/ExamList'
-import DashboardHeader from '../Components/DashboardHeader'
+// InstructorDashboard.jsx
+import React from "react";
+import SideBar from "../Components/SideBar";
+import DashboardHeader from "../Components/DashboardHeader";
+import CreatedExams from "./CreatedExams";
+import { Outlet } from "react-router-dom";
 
-const InstructorDashboard = ({user}) => {
+const InstructorDashboard = ({ user }) => {
   return (
-    <>
-    <section className='min-h-screen'>
-        <div className="flex min-h-screen">
-            <SideBar role={user?.role} />
-            <div className="wrap w-full">
-            <DashboardHeader username={user?.username} />
-            <ExamList />
-            </div>
+    <section className="min-h-screen">
+      <div className="flex min-h-screen">
+        <SideBar role={user?.role} />
+        <div className="wrap w-full">
+          <DashboardHeader username={user?.username} />
+          <CreatedExams instructor={user?.username} />
+          <Outlet />
         </div>
-
+      </div>
     </section>
-    </>
-  )
-}
+  );
+};
 
-export default InstructorDashboard
+export default InstructorDashboard;

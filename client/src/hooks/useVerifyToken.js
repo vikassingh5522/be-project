@@ -2,31 +2,31 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 
 export const useVerifyToken = () => {
-  const [user, setUser] = useState(null);  
-  const token = localStorage.getItem('token');
+  // Initialize with undefined so we can differentiate between "not loaded" and "no user"
+  const [user, setUser] = useState(undefined);
+  const token = localStorage.getItem("token");
 
   const verifyToken = async () => {
     if (token) {
       try {
-        const response = await axios.get('http://localhost:5000/auth/verify', {
+        const response = await axios.get("http://localhost:5000/auth/verify", {
           headers: {
-            'Authorization': 'Bearer ' + token,
+            "Authorization": "Bearer " + token,
           },
         });
-
-        setUser(response.data.user_data);  
+        setUser(response.data.user_data);
       } catch (error) {
-        console.error('Error verifying token:', error);
-        setUser(null);  
+        console.error("Error verifying token:", error);
+        setUser(null);
       }
     } else {
-      setUser(null); 
+      setUser(null);
     }
   };
 
   useEffect(() => {
     verifyToken();
-  }, [token]);  
+  }, [token]);
 
-  return user; 
+  return user;
 };

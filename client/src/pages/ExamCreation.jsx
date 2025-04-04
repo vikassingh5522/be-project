@@ -1,4 +1,3 @@
-// examcreation.js
 import React, { useState } from 'react';
 
 const ExamCreation = () => {
@@ -26,8 +25,13 @@ const ExamCreation = () => {
     formData.append("date", examDate); // Include exam details
 
     try {
-      const response = await fetch("http://localhost:5000/upload-file", {
+      // Retrieve token from localStorage
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/exam/create", {
           method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`
+          },
           body: formData,
       });
       const data = await response.json();

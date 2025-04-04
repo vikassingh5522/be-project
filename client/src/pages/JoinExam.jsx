@@ -22,7 +22,7 @@ const JoinExam = () => {
   const startPairing = async () => {
     const loginToken = localStorage.getItem("token"); // Assumes user is logged in.
     try {
-      const response = await fetch("http://192.168.1.36:5000/exam/connect", {
+      const response = await fetch("http://localhost:5000/exam/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: loginToken, examId })
@@ -46,7 +46,7 @@ const JoinExam = () => {
       interval = setInterval(async () => {
         try {
           const res = await fetch(
-            `http://192.168.1.36:5000/mobile/status?token=${examToken}`
+            `http://localhost:5000/mobile/status?token=${examToken}`
           );
           const statusData = await res.json();
           if (statusData.success && statusData.mobile_confirmed) {
@@ -75,7 +75,7 @@ const JoinExam = () => {
 
   // Build the mobile monitor URL.
   const mobileMonitorURL = examToken 
-    ? `http://192.168.1.36:5000/static/mobile_monitor.html?token=${examToken}` 
+    ? `http://localhost:5000/static/mobile_monitor.html?token=${examToken}` 
     : "";
 
   return (
