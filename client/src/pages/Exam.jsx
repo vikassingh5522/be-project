@@ -168,14 +168,13 @@ function Exam() {
 
   useEffect(() => {
     let noiseInterval;
-    if (examStarted) {
+    if (examStarted && examToken) {
       noiseInterval = setInterval(async () => {
         try {
-          const res = await fetch(`http://localhost:5000/exam/noise-alert?examId=${examId}&token=${examToken}`);
+          const res = await fetch(`http://192.168.1.34:5000/exam/noise-alert?examId=${examId}&token=${examToken}`);
           const data = await res.json();
           if (data.abnormal && data.speaker_count >= 2) {
             setNoiseAlert(true);
-            // Clear polling if an alert is found and show a prompt after a delay
             clearInterval(noiseInterval);
             setTimeout(() => {
               alert("Alert: Abnormal noise detected in your exam environment!");
@@ -186,12 +185,13 @@ function Exam() {
         } catch (err) {
           console.error("Error checking noise alert:", err);
         }
-      }, 15000); // Poll every 15 seconds
+      }, 20000);
     }
     return () => {
       if (noiseInterval) clearInterval(noiseInterval);
     };
   }, [examStarted, examId, examToken]);
+  
 
   const handleOptionChange = (e) => {
     setSelectedAnswers({

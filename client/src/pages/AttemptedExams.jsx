@@ -32,12 +32,12 @@ const AttemptedExams = () => {
             <div 
               key={index} 
               className="card p-4 bg-white shadow rounded cursor-pointer"
-              onClick={() => navigate(`/exam/dashboard/${exam.id}`)}
+              onClick={() => navigate(`/exam/dashboard/${exam.examId}`)}
             >
-              <h3 className="font-bold">Exam: {exam.id}</h3>
-              <p>Name: {exam.name}</p>
-              <p>Duration: {exam.duration} minutes</p>
-              <p>Date: {new Date(exam.date).toLocaleDateString()}</p>
+              <h3 className="font-bold">Exam: {exam.examId}</h3>
+              <p>Name: {exam.examName}</p>
+              <p>Duration: {exam.examDuration} minutes</p>
+              <p>Date: {new Date(exam.examDate).toLocaleDateString()}</p>
             </div>
           ))}
         </div>

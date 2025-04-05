@@ -216,59 +216,72 @@ def exam_attempts():
 
 @app.route('/exam/submit', methods=['POST'])
 def exam_submit():
-    """
-    When a student submits their exam, store the following in the attempted_exams collection:
-      - examId, username
-      - examStartTime (provided by the client)
-      - answers (an object mapping question index to the user’s answer)
-      - abnormalAudios (if any)
-      - submittedAt (current server time)
-    Also, compute the MCQ score by comparing the student's answers with the exam details stored in the users collection.
-    (Coding question scoring will be added later.)
-    """
     data = request.get_json()
     exam_id = data.get("examId")
     username = data.get("username")
     exam_start_time = data.get("examStartTime")
-    user_answers = data.get("answers")  # Expected as a dict: { "0": "b", "1": "print('Hello')", ... }
-    abnormal_audios = data.get("abnormalAudios", [])  # Array of abnormal audio alert objects
+    user_answers = data.get("answers")
+    abnormal_audios = data.get("abnormalAudios", [])
 
     if not exam_id or not username or not exam_start_time or user_answers is None:
         return jsonify({"success": False, "message": "Missing examId, username, examStartTime, or answers"}), 400
+    
+    # Standardize examStartTime if it ends with "Z"
+    if exam_start_time.endswith("Z"):
+        exam_start_time = exam_start_time.replace("Z", "+00:00")
+    # Optionally, parse and reformat to be safe:
+    from dateutil import parser
+    exam_start_time = parser.isoparse(exam_start_time).isoformat()
 
-    # Retrieve exam details from the users collection
-    user_collection = db["users"]
-    exam_doc = user_collection.find_one({"exam.id": exam_id}, {"_id": 0, "exam": 1})
-    if not exam_doc or "exam" not in exam_doc:
+    # Query the exams collection for exam details
+    exam_doc = db_exams.find_one({"id": exam_id})
+    if not exam_doc:
         return jsonify({"success": False, "message": "Exam not found"}), 404
 
-    exam_details = exam_doc["exam"]
+    exam_details = exam_doc
     questions = exam_details.get("questions", [])
     computed_score = 0
-    # Compute score for MCQ questions only.
     for idx, question in enumerate(questions):
         if question.get("type") == "mcq":
-            # Get correct answer (converted to lower-case for comparison)
-            correct = question.get("correctAnswer", "").lower() if question.get("correctAnswer") else ""
-            # Assume user_answers keys are strings representing the question index (starting at "0")
-            user_ans = user_answers.get(str(idx), "").lower()
-            if user_ans == correct and correct != "":
+            correct = question.get("correctAnswer", "").lower().strip() if question.get("correctAnswer") else ""
+            user_ans = user_answers.get(str(idx), "").lower().strip()
+            if user_ans and user_ans[0] == correct and correct != "":
                 computed_score += question.get("score", 2)
-        # Coding question scoring will be added later.
-
-    new_attempt = {
-        "examId": exam_id,
-        "username": username,
-        "examStartTime": exam_start_time,  # stored as provided (e.g., ISO string)
+    
+    submitted_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    update_data = {
+        "examStartTime": exam_start_time,
         "answers": user_answers,
         "score": computed_score,
         "abnormalAudios": abnormal_audios,
-        "submittedAt": datetime.datetime.utcnow()
+        "submittedAt": submitted_at,
+        "examName": exam_details.get("name"),
+        "examDuration": exam_details.get("duration"),
+        "examDate": exam_details.get("date"),
+        "maxScore": exam_details.get("maxScore")
     }
-    insert_result = db_collection.insert_one(new_attempt)
-    new_attempt["_id"] = str(insert_result.inserted_id)
-    new_attempt["submittedAt"] = new_attempt["submittedAt"].isoformat()
-    return jsonify({"success": True, "attempt": new_attempt}), 200
+    
+    existing_attempt = db_collection.find_one({"examId": exam_id, "username": username})
+    if existing_attempt:
+        db_collection.update_one({"_id": existing_attempt["_id"]}, {"$set": update_data})
+        updated_attempt = db_collection.find_one({"_id": existing_attempt["_id"]})
+        updated_attempt["_id"] = str(updated_attempt["_id"])
+        if "submittedAt" in updated_attempt and isinstance(updated_attempt["submittedAt"], datetime.datetime):
+            updated_attempt["submittedAt"] = updated_attempt["submittedAt"].isoformat()
+        if "startedAt" in updated_attempt and isinstance(updated_attempt["startedAt"], datetime.datetime):
+            updated_attempt["startedAt"] = updated_attempt["startedAt"].isoformat()
+        return jsonify({"success": True, "attempt": updated_attempt}), 200
+    else:
+        new_attempt = {
+            "examId": exam_id,
+            "username": username,
+            **update_data
+        }
+        insert_result = db_collection.insert_one(new_attempt)
+        new_attempt["_id"] = str(insert_result.inserted_id)
+        new_attempt["submittedAt"] = new_attempt["submittedAt"].isoformat()
+        return jsonify({"success": True, "attempt": new_attempt}), 200
+
 
 
 @app.route('/exam/attempted', methods=['GET'])
@@ -289,22 +302,22 @@ def exam_attempted():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
-@app.route('/exam/attempted/latest', methods=['GET'])
-def exam_attempted_latest():
-    username = request.args.get("username")
-    if not username:
-        return jsonify({"success": False, "message": "Missing username"}), 400
+# @app.route('/exam/attempted/latest', methods=['GET'])
+# def exam_attempted_latest():
+#     username = request.args.get("username")
+#     if not username:
+#         return jsonify({"success": False, "message": "Missing username"}), 400
 
-    latest_cursor = db_collection.find({"username": username}).sort("_id", -1).limit(1)
-    latest_attempt = list(latest_cursor)
-    if latest_attempt:
-        attempt = latest_attempt[0]
-        attempt["_id"] = str(attempt["_id"])
-        if "submittedAt" in attempt:
-            attempt["submittedAt"] = attempt["submittedAt"].isoformat()
-        return jsonify({"success": True, "latestExam": attempt}), 200
-    else:
-        return jsonify({"success": True, "latestExam": None}), 200
+#     latest_cursor = db_collection.find({"username": username}).sort("_id", -1).limit(1)
+#     latest_attempt = list(latest_cursor)
+#     if latest_attempt:
+#         attempt = latest_attempt[0]
+#         attempt["_id"] = str(attempt["_id"])
+#         if "submittedAt" in attempt:
+#             attempt["submittedAt"] = attempt["submittedAt"].isoformat()
+#         return jsonify({"success": True, "latestExam": attempt}), 200
+#     else:
+#         return jsonify({"success": True, "latestExam": None}), 200
 
 @app.route('/store-keylogs', methods=['POST'])
 def store_keylogs():
@@ -520,7 +533,7 @@ def exam_connect():
         new_attempt = {
             "examId": exam_id,
             "username": username,
-            "startedAt": datetime.datetime.utcnow(),
+            "startedAt": datetime.datetime.now(datetime.timezone.utc),
             "submittedAt": None,
             "score": None,
             "answers": {},
@@ -580,7 +593,7 @@ def mobile_confirm():
     sessions_collection = db["exam_sessions"]
     sessions_collection.update_one(
         {"username": username, "examId": exam_id},
-        {"$set": {"mobile_confirmed": True, "confirmed_at": datetime.datetime.utcnow()}},
+        {"$set": {"mobile_confirmed": True, "confirmed_at": datetime.datetime.now(datetime.timezone.utc)}},
         upsert=True
     )
     return jsonify({"success": True, "message": "Mobile confirmed successfully."}), 200
@@ -639,7 +652,7 @@ def upload_audio():
         return jsonify({"success": False, "message": f"Error extracting MFCC: {str(e)}"}), 500
     if abnormal:
         alert_data = {
-            "timestamp": datetime.datetime.utcnow(),
+            "timestamp": datetime.datetime.now(datetime.timezone.utc),
             "file_path": file_path,
             "rms": rms,
             "speaker_count": speaker_count,
@@ -676,7 +689,7 @@ def exam_noise_alert():
     attempt = db_collection.find_one({"examId": exam_id, "username": username})
     if attempt and "audioAlerts" in attempt:
         alerts = attempt.get("audioAlerts", [])
-        time_threshold = datetime.datetime.utcnow() - datetime.timedelta(minutes=5)
+        time_threshold = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(minutes=5)
         recent_alert = next((a for a in alerts if a["timestamp"] >= time_threshold), None)
         if recent_alert:
             return jsonify({"success": True, "abnormal": True, "speaker_count": recent_alert.get("speaker_count", 0)}), 200
@@ -716,6 +729,22 @@ def latest_attempt():
         return jsonify({"success": True, "latestExam": attempt}), 200
     else:
         return jsonify({"success": True, "latestExam": None}), 200
+@app.route('/exam/result', methods=['GET'])
+def exam_result():
+    username = request.args.get("username")
+    exam_id = request.args.get("examId")
+    if not exam_id or not username:
+        return jsonify({"success": False, "message": "Missing examId or username"}), 400
+
+    # Query the attempted_exams collection for this student's attempt on the given exam
+    attempt = db_collection.find_one({"examId": exam_id, "username": username})
+    if attempt:
+        attempt["_id"] = str(attempt["_id"])
+        if "submittedAt" in attempt and isinstance(attempt["submittedAt"], datetime.datetime):
+            attempt["submittedAt"] = attempt["submittedAt"].isoformat()
+        return jsonify({"success": True, "result": attempt}), 200
+    else:
+        return jsonify({"success": False, "message": "Exam attempt not found"}), 404
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
