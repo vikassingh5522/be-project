@@ -13,7 +13,7 @@ import FullscreenPrompt from '../Components/FullscreenPrompt';
 import ToggleableWebcam from '../Components/ToggleableWebcam';
 import Timer from '../Components/Timer';
 import AudioRecorder from "../Components/AudioRec";
-
+import { useNavigate } from 'react-router-dom';
 
 function Exam() {
   const { examId } = useParams();
@@ -31,7 +31,7 @@ function Exam() {
   const [examToken, setExamToken] = useState(null); // Holds token for mobile monitoring
   const [noiseAlert, setNoiseAlert] = useState(false);
   const examStartTime = useRef(null); // Track exam start time
-
+  const navigate = useNavigate();
   useTabFocusMonitor();
   useKeyLogger(isLoggingActive, setKeyLogs);
 
@@ -160,6 +160,8 @@ function Exam() {
     setExamDuration(0);
     setError("");
     setExamToken(null);
+
+    navigate('/dashboard'); // Redirect to dashboard or any other page after submission
   };
 
   useEffect(() => {

@@ -8,7 +8,8 @@ import StudentDashboard from "./pages/StudentDashboard";
 import InstructorDashboard from "./pages/InstructorDashboard";
 import Exam from "./pages/Exam";
 import ExamCreation from "./pages/ExamCreation";
-import JoinExam from "./pages/JoinExam";
+// Replace the original JoinExam import with ToggleableExamJoin for testing:
+import ToggleableExamJoin from "./pages/ToggleableExamJoin";
 import ExamDashboard from "./pages/ExamDashboard";
 import ExamList from "./Components/ExamList";
 import AttemptedExams from "./pages/AttemptedExams";
@@ -70,7 +71,8 @@ function App() {
         </Route>
 
         {/* Other Protected Routes */}
-        <Route path="/exam/join" element={<JoinExam />} />
+        {/* Use the toggleable component in place of JoinExam for testing */}
+        <Route path="/exam/join" element={<ToggleableExamJoin />} />
         <Route path="/exam/create" element={<ExamCreation />} />
         <Route path="/exam/:examId" element={<Exam />} />
         <Route path="/exam/dashboard/:examId" element={<ExamDashboardWrapper />} />
