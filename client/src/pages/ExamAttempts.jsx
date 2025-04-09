@@ -33,6 +33,7 @@ const ExamAttempts = () => {
               <th className="border p-2">Username</th>
               <th className="border p-2">Score</th>
               <th className="border p-2">Submitted At</th>
+              <th className="border p-2">Audio Recordings</th>
             </tr>
           </thead>
           <tbody>
@@ -41,6 +42,21 @@ const ExamAttempts = () => {
                 <td className="border p-2">{attempt.username}</td>
                 <td className="border p-2">{attempt.score}</td>
                 <td className="border p-2">{attempt.submittedAt || "N/A"}</td>
+                <td className="border p-2">
+                  {attempt.recordings && attempt.recordings.length > 0 ? (
+                    attempt.recordings.map((rec, index) => (
+                      <div key={index}>
+                        <audio controls>
+                          <source src={`http://localhost:5000/audio/${rec.file}`} type="audio/webm" />
+                            Your browser does not support the audio element.
+                          </audio>
+                        <p>{new Date(rec.timestamp).toLocaleString()}</p>
+                      </div>
+                    ))
+                  ) : (
+                    "No recordings"
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

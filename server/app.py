@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file,send_from_directory
 from flask_cors import CORS
 import base64
 from io import BytesIO
@@ -54,6 +54,11 @@ def allowed_file(filename):
     """Check if the uploaded file has an allowed extension."""
     ext = os.path.splitext(filename)[1].lower()
     return ext in ALLOWED_EXTENSIONS
+
+@app.route('/audio/<path:filename>', methods=['GET'])
+def serve_audio(filename):
+    file_path = os.path.join(AUDIO_UPLOAD_FOLDER, filename)
+    return send_file(file_path, mimetype="audio/webm")
 
 @app.route('/upload', methods=['POST'])
 def upload_frame():
@@ -225,15 +230,11 @@ def exam_submit():
 
     if not exam_id or not username or not exam_start_time or user_answers is None:
         return jsonify({"success": False, "message": "Missing examId, username, examStartTime, or answers"}), 400
-    
-    # Standardize examStartTime if it ends with "Z"
+
     if exam_start_time.endswith("Z"):
         exam_start_time = exam_start_time.replace("Z", "+00:00")
-    # Optionally, parse and reformat to be safe:
-    from dateutil import parser
     exam_start_time = parser.isoparse(exam_start_time).isoformat()
 
-    # Query the exams collection for exam details
     exam_doc = db_exams.find_one({"id": exam_id})
     if not exam_doc:
         return jsonify({"success": False, "message": "Exam not found"}), 404
@@ -244,10 +245,10 @@ def exam_submit():
     for idx, question in enumerate(questions):
         if question.get("type") == "mcq":
             correct = question.get("correctAnswer", "").lower().strip() if question.get("correctAnswer") else ""
-            user_ans = user_answers.get(str(idx), "").lower().strip()
+            user_ans = (user_answers.get(str(idx)) or "").lower().strip()
             if user_ans and user_ans[0] == correct and correct != "":
                 computed_score += question.get("score", 2)
-    
+
     submitted_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
     update_data = {
         "examStartTime": exam_start_time,
@@ -260,7 +261,7 @@ def exam_submit():
         "examDate": exam_details.get("date"),
         "maxScore": exam_details.get("maxScore")
     }
-    
+
     existing_attempt = db_collection.find_one({"examId": exam_id, "username": username})
     if existing_attempt:
         db_collection.update_one({"_id": existing_attempt["_id"]}, {"$set": update_data})
@@ -281,6 +282,7 @@ def exam_submit():
         new_attempt["_id"] = str(insert_result.inserted_id)
         new_attempt["submittedAt"] = new_attempt["submittedAt"].isoformat()
         return jsonify({"success": True, "attempt": new_attempt}), 200
+
 
 
 
@@ -630,89 +632,24 @@ def upload_audio():
     except Exception as e:
         return jsonify({"success": False, "message": "Invalid token"}), 401
     username = decoded.get("username")
-    filename = secure_filename(audio_file.filename)
-    file_path = os.path.join(AUDIO_UPLOAD_FOLDER, filename)
+    # Create a unique filename using examId, username, timestamp and original filename.
+    original_filename = secure_filename(audio_file.filename)
+    unique_filename = f"{exam_id}_{username}_{int(datetime.datetime.now().timestamp())}_{original_filename}"
+    file_path = os.path.join(AUDIO_UPLOAD_FOLDER, unique_filename)
     audio_file.save(file_path)
-    try:
-        y, sr = librosa.load(file_path, sr=None)
-        rms = np.mean(librosa.feature.rms(y=y))
-        background_threshold = 0.01  
-    except Exception as e:
-        return jsonify({"success": False, "message": f"Error loading audio: {str(e)}"}), 500
-    if rms < background_threshold:
-        os.remove(file_path)
-        return jsonify({"success": True, "message": "Audio is background noise. Not processed."}), 200
-    abnormal_threshold = 0.05  
-    abnormal = rms > abnormal_threshold
-    speaker_count = 1 if abnormal else 0
-    try:
-        mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
-        mfcc_means = np.mean(mfccs, axis=1).tolist()
-    except Exception as e:
-        return jsonify({"success": False, "message": f"Error extracting MFCC: {str(e)}"}), 500
-    if abnormal:
-        alert_data = {
-            "timestamp": datetime.datetime.now(datetime.timezone.utc),
-            "file_path": file_path,
-            "rms": rms,
-            "speaker_count": speaker_count,
-            "mfcc_means": mfcc_means,
-            "analysis": "Abnormal noise detected based on RMS threshold."
-        }
-        db_collection.update_one(
-            {"examId": exam_id, "username": username},
-            {"$push": {"audioAlerts": alert_data}}
-        )
-        message = "Abnormal audio fragment detected and stored."
-    else:
-        os.remove(file_path)
-        message = "Audio fragment is normal. Not stored."
-    return jsonify({
-        "success": True,
-        "message": message,
-        "speaker_count": speaker_count,
-        "mfcc_means": mfcc_means
-    }), 200
+    
+    # Update the corresponding exam attempt document by adding a recording entry.
+    recording_entry = {
+        "file": unique_filename,
+        "timestamp": datetime.datetime.now(datetime.timezone.utc)
+    }
+    db_collection.update_one(
+        {"examId": exam_id, "username": username},
+        {"$push": {"recordings": recording_entry}}
+    )
+    
+    return jsonify({"success": True, "message": "Audio recording stored", "recording": recording_entry}), 200
 
-@app.route('/exam/noise-alert', methods=['GET'])
-def exam_noise_alert():
-    exam_id = request.args.get("examId")
-    token = request.args.get("token")
-    if not exam_id or not token:
-        return jsonify({"success": False, "message": "Missing examId or token"}), 400
-    JWT_SECRET = os.getenv("JWT_SECRET")
-    try:
-        decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-    except Exception as e:
-        return jsonify({"success": False, "message": "Invalid token"}), 401
-    username = decoded.get("username")
-    attempt = db_collection.find_one({"examId": exam_id, "username": username})
-    if attempt and "audioAlerts" in attempt:
-        alerts = attempt.get("audioAlerts", [])
-        time_threshold = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(minutes=5)
-        recent_alert = next((a for a in alerts if a["timestamp"] >= time_threshold), None)
-        if recent_alert:
-            return jsonify({"success": True, "abnormal": True, "speaker_count": recent_alert.get("speaker_count", 0)}), 200
-    return jsonify({"success": True, "abnormal": False}), 200
-
-@app.route('/exam/audio-alerts', methods=['GET'])
-def exam_audio_alerts():
-    exam_id = request.args.get("examId")
-    token = request.args.get("token")
-    if not exam_id or not token:
-        return jsonify({"success": False, "message": "Missing examId or token"}), 400
-    JWT_SECRET = os.getenv("JWT_SECRET")
-    try:
-        decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-    except Exception as e:
-        return jsonify({"success": False, "message": "Invalid token"}), 401
-    username = decoded.get("username")
-    attempt = db_collection.find_one({"examId": exam_id, "username": username})
-    if attempt and "audioAlerts" in attempt:
-        audio_alerts = attempt.get("audioAlerts", [])
-        return jsonify({"success": True, "audioAlerts": audio_alerts}), 200
-    else:
-        return jsonify({"success": True, "audioAlerts": []}), 200
 
 @app.route('/exam/attempted/latest', methods=['GET'])
 def latest_attempt():

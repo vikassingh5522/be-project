@@ -1,7 +1,7 @@
 // exam.js
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import {QRCodeCanvas} from 'qrcode.react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { QRCodeCanvas } from 'qrcode.react';
 import useFullscreenManager from '../hooks/useFullscreenManager';
 import { useTabFocusMonitor } from '../hooks/useTabFocusMonitor';
 import { useKeyLogger } from '../hooks/useKeyLogger';
@@ -13,8 +13,7 @@ import FullscreenPrompt from '../Components/FullscreenPrompt';
 import ToggleableWebcam from '../Components/ToggleableWebcam';
 import Timer from '../Components/Timer';
 import AudioRecorder from "../Components/AudioRec";
-import { useNavigate } from 'react-router-dom';
-
+  
 function Exam() {
   const { examId } = useParams();
   const { isFullscreen, goFullscreen, exitCount } = useFullscreenManager();
@@ -29,9 +28,10 @@ function Exam() {
   const [error, setError] = useState('');
   const [examDuration, setExamDuration] = useState(0);
   const [examToken, setExamToken] = useState(null); // Holds token for mobile monitoring
-  const [noiseAlert, setNoiseAlert] = useState(false);
-  const examStartTime = useRef(null); // Track exam start time
+  const examStartTime = useRef(null);
   const navigate = useNavigate();
+  const audioRecorderRef = useRef(null); // Ref to access AudioRecorder methods
+
   useTabFocusMonitor();
   useKeyLogger(isLoggingActive, setKeyLogs);
 
@@ -56,24 +56,24 @@ function Exam() {
     }
   }, [examId]);
 
-  // When exam starts, generate an exam token for mobile monitoring via /exam/connect
+  // Generate exam token for mobile monitoring when exam starts
   useEffect(() => {
     if (examStarted) {
-      const loginToken = localStorage.getItem("token"); // Assumes login token is stored in localStorage
+      const loginToken = localStorage.getItem("token"); // Assumes login token is in localStorage
       fetch("http://localhost:5000/exam/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: loginToken, examId })
       })
-      .then(res => res.json())
-      .then(data => {
-        if(data.success) {
-          setExamToken(data.examToken);
-        } else {
-          console.error("Failed to generate exam token:", data.message);
-        }
-      })
-      .catch(err => console.error("Error generating exam token:", err));
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setExamToken(data.examToken);
+          } else {
+            console.error("Failed to generate exam token:", data.message);
+          }
+        })
+        .catch(err => console.error("Error generating exam token:", err));
     }
   }, [examStarted, examId]);
 
@@ -105,41 +105,58 @@ function Exam() {
     return `${minutes} minutes and ${seconds} seconds`;
   };
 
+  // Build complete answers object
+  const buildCompleteAnswers = () => {
+    const completeAnswers = {};
+    questions.forEach((q, index) => {
+      if (q.type === 'mcq') {
+        completeAnswers[index] = selectedAnswers[index] || null;
+      } else if (q.type === 'coding') {
+        const codeAnswer = localStorage.getItem(`code_question_${index + 1}`);
+        completeAnswers[index] = codeAnswer ? codeAnswer : null;
+      } else {
+        completeAnswers[index] = null;
+      }
+    });
+    return completeAnswers;
+  };
+
   const handleSubmit = async () => {
-    const timeTaken = calculateTimeTaken();
-    
-    // Calculate score based on selected answers and correct answers (assumes questions array contains correctAnswer for MCQs)
-    let score = 0;
-  questions.forEach((q, index) => {
-    if (q.type === 'mcq') {
-      if (
-        selectedAnswers[index] &&
-        q.correctAnswer &&
-        selectedAnswers[index].toLowerCase().includes(q.correctAnswer.toLowerCase())
-      ) {
-        score += 2; // MCQ score
-      }
-    } else if (q.type === 'coding') {
-      // For now, award full points if an answer is provided.
-      if (selectedAnswers[index]) {
-        score += 5;
-      }
+    // Optionally trigger audio upload before submitting exam results.
+    if (audioRecorderRef.current) {
+      await audioRecorderRef.current.uploadRecording();
     }
-  });
-  
+
+    const timeTaken = calculateTimeTaken();
+    let score = 0;
+    questions.forEach((q, index) => {
+      if (q.type === 'mcq') {
+        if (
+          selectedAnswers[index] &&
+          q.correctAnswer &&
+          selectedAnswers[index].toLowerCase().includes(q.correctAnswer.toLowerCase())
+        ) {
+          score += 2; // MCQ score
+        }
+      } else if (q.type === 'coding') {
+        const codeAnswer = localStorage.getItem(`code_question_${index + 1}`);
+        if (codeAnswer && codeAnswer.trim() !== "") {
+          score += 5;
+        }
+      }
+    });
+
     alert(`Exam submitted successfully! You completed the exam in ${timeTaken}. Your score is ${score}.`);
     console.log('Selected Answers:', selectedAnswers);
 
     const payload = {
       examId,
-      username: localStorage.getItem("username"), // Ensure username is stored on login
-      examStartTime: examStartTime.current.toISOString(), // Convert to ISO string
-      answers: selectedAnswers, // e.g., { "0": "b", "1": "print('Hello')" }
-      abnormalAudios: [] // Add any abnormal audio alerts if available
-      // score will be computed on the server for MCQs
+      username: localStorage.getItem("username"),
+      examStartTime: examStartTime.current.toISOString(),
+      answers: buildCompleteAnswers(),
+      abnormalAudios: [] // Not processing any abnormal audio in this simplified flow
     };
-    
-    // Post the exam result to the backend for attempted exams storage.
+
     try {
       const response = await fetch("http://localhost:5000/exam/submit", {
         method: "POST",
@@ -151,7 +168,7 @@ function Exam() {
     } catch (err) {
       console.error("Error submitting exam:", err);
     }
-    
+
     // Clear exam state after submission
     setExamStarted(false);
     setQuestions([]);
@@ -161,39 +178,12 @@ function Exam() {
     setError("");
     setExamToken(null);
 
-    navigate('/dashboard'); // Redirect to dashboard or any other page after submission
+    navigate('/dashboard');
   };
 
   useEffect(() => {
     setIsFullscreenPromptVisible(!isFullscreen && examStarted);
   }, [isFullscreen, examStarted]);
-
-  useEffect(() => {
-    let noiseInterval;
-    if (examStarted && examToken) {
-      noiseInterval = setInterval(async () => {
-        try {
-          const res = await fetch(`http://192.168.1.34:5000/exam/noise-alert?examId=${examId}&token=${examToken}`);
-          const data = await res.json();
-          if (data.abnormal && data.speaker_count >= 2) {
-            setNoiseAlert(true);
-            clearInterval(noiseInterval);
-            setTimeout(() => {
-              alert("Alert: Abnormal noise detected in your exam environment!");
-            }, 3000);
-          } else {
-            setNoiseAlert(false);
-          }
-        } catch (err) {
-          console.error("Error checking noise alert:", err);
-        }
-      }, 20000);
-    }
-    return () => {
-      if (noiseInterval) clearInterval(noiseInterval);
-    };
-  }, [examStarted, examId, examToken]);
-  
 
   const handleOptionChange = (e) => {
     setSelectedAnswers({
@@ -214,8 +204,7 @@ function Exam() {
     }
   };
 
-  // Build the mobile monitor URL using the exam token.
-  // This URL points to your mobile monitor page (for example, at /static/mobile_monitor.html).
+  // Mobile monitor URL code remains commented out if not used.
   const mobileMonitorURL = examToken 
     ? `http://localhost:5000/static/mobile_monitor.html?token=${examToken}` 
     : "";
@@ -235,11 +224,11 @@ function Exam() {
       {/* When the exam is active */}
       {examStarted && (
         <>
-          <Header exitCount={exitCount}/>
+          <Header exitCount={exitCount} />
           <Timer initialMinutes={examDuration} onTimeUp={handleTimeUp} />
-          <AudioRecorder examId={examId} token={examToken} />
-          {noiseAlert && <div className="alert">Abnormal noise detected in your exam environment!</div>}
-        
+          {/* AudioRecorder now uses a ref for submission integration */}
+          <AudioRecorder ref={audioRecorderRef} examId={examId} token={examToken} />
+          
           {questions.length > 0 ? (
             <ExamContainer
               questions={questions}
@@ -253,19 +242,6 @@ function Exam() {
           ) : (
             <p className="text-red-500">No questions loaded. Please contact the administrator.</p>
           )}
-         { /*
-          {examToken && (
-            <div className="mt-4 p-4 bg-white shadow rounded">
-              <p className="mb-2">Scan this QR code with your mobile device for exam monitoring:</p>
-              <QRCodeCanvas value={mobileMonitorURL} size={200} />
-              <p className="text-sm mt-2">
-                Mobile URL:{" "}
-                <a href={mobileMonitorURL} target="_blank" rel="noreferrer">
-                  {mobileMonitorURL}
-                </a>
-              </p>
-            </div>
-          )}*/}
         </>
       )}
       <ToggleableWebcam showWebcam={showWebcam} onToggle={() => setShowWebcam(prev => !prev)} />
