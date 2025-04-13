@@ -1,15 +1,35 @@
-import React from 'react'
-import ExamCard from './ExamCard'
-import img from '../assets/signup.svg'
+import React, { useEffect, useState } from "react";
+import ExamCard from "./ExamCard";
 
-const ExamList = ({role}) => {
+const ExamList = ({ role }) => {
+  const [exams, setExams] = useState([]);
+
+  useEffect(() => {
+    const fetchExams = async () => {
+      try {
+        // This fetches active (assigned) exams
+        const response = await fetch("http://localhost:5000/exam/active");
+        const data = await response.json();
+        if (data.success) {
+          setExams(data.exams);
+        } else {
+          console.error("Error:", data.message);
+        }
+      } catch (error) {
+        console.error("Error fetching exams:", error);
+      }
+    };
+
+    fetchExams();
+  }, []);
+
   return (
-    <>
-    <main className='p-4'>
-      <ExamCard data={{title: "C programming", image: img, duration: "30", id: 1234}} role={role} />
-    </main>
-    </>
-  )
-}
+    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      {exams.map((exam) => (
+        <ExamCard key={exam.id} data={exam} role={role} />
+      ))}
+    </div>
+  );
+};
 
-export default ExamList
+export default ExamList;

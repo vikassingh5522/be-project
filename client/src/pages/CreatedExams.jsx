@@ -1,5 +1,6 @@
 // CreatedExams.jsx
 import React, { useEffect, useState } from "react";
+import ExamCardTeacher from "../Components/ExamCardTeacher";
 import { useNavigate } from "react-router-dom";
 
 const CreatedExams = ({ instructor }) => {
@@ -29,16 +30,7 @@ const CreatedExams = ({ instructor }) => {
       {exams.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {exams.map((exam) => (
-            <div
-              key={exam.id}
-              className="card p-4 bg-white shadow rounded cursor-pointer"
-              onClick={() => navigate(`/dashboard/exams/attempts/${exam.id}`)}
-            >
-              <h3 className="font-bold">{exam.name}</h3>
-              <p>Exam ID: {exam.id}</p>
-              <p>Duration: {exam.duration} minutes</p>
-              <p>Max Score: {exam.maxScore || "N/A"}</p>
-            </div>
+            <ExamCardTeacher key={exam.id} exam={exam} />
           ))}
         </div>
       ) : (

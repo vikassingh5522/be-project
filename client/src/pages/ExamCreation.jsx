@@ -4,44 +4,55 @@ const ExamCreation = () => {
   const [examName, setExamName] = useState('');
   const [examDate, setExamDate] = useState('');
   const [examDuration, setExamDuration] = useState('');
-  const [file, setFile] = useState(null);
+  const [examActiveStart, setExamActiveStart] = useState('');
+  const [examActiveEnd, setExamActiveEnd] = useState('');
+  const [file, setFile] = useState(null); // For exam questions file (.txt or .docx)
+  const [studentDataFile, setStudentDataFile] = useState(null); // For student Excel file
   const [error, setError] = useState('');
   const [visible, setVisible] = useState(false);
   const [examId, setExamId] = useState('');
 
-  const handleFileChange = (e) => {
+  const handleExamFileChange = (e) => {
     setFile(e.target.files[0]);
+  };
+
+  const handleStudentDataChange = (e) => {
+    setStudentDataFile(e.target.files[0]);
   };
 
   const uploadFile = async () => {
     if (!file) {
-      setError("Please select a file.");
+      setError("Please select an exam file.");
       return;
     }
     const formData = new FormData();
     formData.append("file", file);
     formData.append("name", examName);
     formData.append("duration", examDuration);
-    formData.append("date", examDate); // Include exam details
-
+    formData.append("date", examDate);
+    formData.append("active_start", examActiveStart);
+    formData.append("active_end", examActiveEnd);
+    if (studentDataFile) {
+      formData.append("studentData", studentDataFile);
+    }
     try {
       // Retrieve token from localStorage
       const token = localStorage.getItem("token");
       const response = await fetch("http://localhost:5000/exam/create", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${token}`
-          },
-          body: formData,
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        },
+        body: formData,
       });
       const data = await response.json();
       if (data.success) {
-          setError("");
-          setExamId(data.examId);
-          console.log("Exam created with ID:", data.examId);
-          setVisible(true);
+        setError("");
+        setExamId(data.examId);
+        console.log("Exam created with ID:", data.examId);
+        setVisible(true);
       } else {
-          setError(data.message);
+        setError(data.message);
       }
     } catch (err) {
       console.error("Error uploading file:", err);
@@ -52,7 +63,6 @@ const ExamCreation = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     uploadFile();
-    console.log({ examName, examDate, examDuration });
   };
 
   return (
@@ -86,15 +96,31 @@ const ExamCreation = () => {
             className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+        <div className="mb-4">
+          <label className="block text-gray-700">Exam Active Start:</label>
+          <input 
+            type="datetime-local" 
+            value={examActiveStart} 
+            onChange={(e) => setExamActiveStart(e.target.value)} 
+            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-gray-700">Exam Active End:</label>
+          <input 
+            type="datetime-local" 
+            value={examActiveEnd} 
+            onChange={(e) => setExamActiveEnd(e.target.value)} 
+            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
         <div className="file-upload-section mb-4">
-          <input type="file" onChange={handleFileChange} />
-          <button
-            type="button"
-            onClick={uploadFile}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-4"
-          >
-            Upload File
-          </button>
+          <label className="block text-gray-700">Upload Exam File (.txt or .docx):</label>
+          <input type="file" onChange={handleExamFileChange} />
+        </div>
+        <div className="file-upload-section mb-4">
+          <label className="block text-gray-700">Upload Student Data (Excel file):</label>
+          <input type="file" onChange={handleStudentDataChange} />
         </div>
         <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">
           Create Exam

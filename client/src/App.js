@@ -8,13 +8,15 @@ import StudentDashboard from "./pages/StudentDashboard";
 import InstructorDashboard from "./pages/InstructorDashboard";
 import Exam from "./pages/Exam";
 import ExamCreation from "./pages/ExamCreation";
+import JoinExam from "./pages/JoinExam";
 // Replace the original JoinExam import with ToggleableExamJoin for testing:
-import ToggleableExamJoin from "./pages/ToggleableExamJoin";
+//import ToggleableExamJoin from "./pages/ToggleableExamJoin";
 import ExamDashboard from "./pages/ExamDashboard";
 import ExamList from "./Components/ExamList";
 import AttemptedExams from "./pages/AttemptedExams";
 import CreatedExams from "./pages/CreatedExams"; // For instructor's created exams
 import ExamAttempts from "./pages/ExamAttempts"; // For instructor to view student attempts
+import ActiveExamsList from "./pages/ActiveExamsList"; // New active exams section
 
 // Wrapper to extract examId from URL parameters for ExamDashboard if needed.
 const ExamDashboardWrapper = () => {
@@ -56,8 +58,9 @@ function App() {
           {/* Nested student dashboard routes */}
           {currentUser && currentUser.role === "student" && (
             <>
-              <Route index element={<ExamList role={currentUser.role} />} />
-              <Route path="exams/practice" element={<ExamList role={currentUser.role} />} />
+              <Route index element={<ExamList role={currentUser.role} username={currentUser.username} />} />
+              <Route path="exams/assigned" element={<ExamList role={currentUser.role} username={currentUser.username} />} />
+              <Route path="exams/practice" element={<ExamList role={currentUser.role} username={currentUser.username} />} />
               <Route path="exams/attempted" element={<AttemptedExams />} />
             </>
           )}
@@ -65,6 +68,7 @@ function App() {
           {currentUser && currentUser.role !== "student" && (
             <>
               <Route index element={<CreatedExams instructor={currentUser.username} />} />
+              <Route path="exams/active" element={<ActiveExamsList instructor={currentUser.username} />} />
               <Route path="exams/attempts/:examId" element={<ExamAttempts />} />
             </>
           )}
@@ -72,7 +76,8 @@ function App() {
 
         {/* Other Protected Routes */}
         {/* Use the toggleable component in place of JoinExam for testing */}
-        <Route path="/exam/join" element={<ToggleableExamJoin />} />
+       { /*<Route path="/exam/join" element={<ToggleableExamJoin />} />*/}
+        <Route path="/exam/join/:examId" element={<JoinExam />} />
         <Route path="/exam/create" element={<ExamCreation />} />
         <Route path="/exam/:examId" element={<Exam />} />
         <Route path="/exam/dashboard/:examId" element={<ExamDashboardWrapper />} />

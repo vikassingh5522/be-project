@@ -1,3 +1,4 @@
+// SideBar.jsx
 import React from "react";
 import { NavLink } from "react-router-dom";
 import { FaUser, FaUserFriends, FaBell, FaPen, FaListAlt } from "react-icons/fa";
@@ -16,7 +17,9 @@ const StudentSideBar = () => {
           <NavLink
             to="/dashboard"
             className={({ isActive }) =>
-              `flex gap-3 items-center p-3 rounded ${isActive ? "bg-blue-600 text-white" : ""}`
+              `flex gap-3 items-center p-3 rounded ${
+                isActive ? "bg-blue-600 text-white" : ""
+              }`
             }
           >
             <FaUser />
@@ -65,6 +68,20 @@ const StudentSideBar = () => {
       </ul>
       <h5 className="text-gray-800 font-semibold uppercase my-3">Exams</h5>
       <ul className="flex flex-col gap-2">
+        {/* New link for assigned (active) exams */}
+        <li>
+          <NavLink
+            to="/dashboard/exams/assigned"
+            className={({ isActive }) =>
+              `flex gap-3 items-center p-3 rounded ${
+                isActive ? "bg-blue-600 text-white" : "hover:bg-blue-400 hover:text-white"
+              }`
+            }
+          >
+            <FaListAlt />
+            Assigned Exams
+          </NavLink>
+        </li>
         <li>
           <NavLink
             to="/dashboard/exams/practice"
@@ -126,6 +143,19 @@ const InstructorSidebar = () => {
             <FaPen />
             Create Exam
           </NavLink>
+        </li>
+        <li className="shadow-md">
+          <NavLink
+            to="/dashboard/exams/active"
+            className={({ isActive }) =>
+              `flex gap-3 items-center p-3 rounded ${isActive ? "bg-blue-600 text-white" : "hover:bg-blue-400 hover:text-white"}`
+            }
+          >
+            <FaListAlt />
+            Active Exams
+          </NavLink>
+        </li>
+        <li className="shadow-md">
           <NavLink
             to="/exam/result"
             className={({ isActive }) =>
