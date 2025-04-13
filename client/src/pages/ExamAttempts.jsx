@@ -47,7 +47,7 @@ const ExamAttempts = () => {
                     attempt.recordings.map((rec, index) => (
                       <div key={index}>
                         <audio controls>
-                          <source src={`http://localhost:5000/audio/${rec.file}`} type="audio/webm" />
+                          <source src={`http://localhost:5000/upload/audio/${rec.file}`} type="audio/webm" />
                             Your browser does not support the audio element.
                           </audio>
                         <p>{new Date(rec.timestamp).toLocaleString()}</p>

@@ -67,7 +67,7 @@ const AudioRecorder = forwardRef(({ examId, token }, ref) => {
       formData.append("examId", examId);
       formData.append("token", token);
       try {
-        const response = await fetch("http://localhost:5000/upload-audio", {
+        const response = await fetch("http://localhost:5000/upload/audio", {
           method: "POST",
           body: formData,
         });

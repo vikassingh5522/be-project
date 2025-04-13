@@ -8,7 +8,7 @@ import 'ace-builds/src-noconflict/theme-github';
 import axios from 'axios';
 import { FaSun, FaMoon } from 'react-icons/fa';
 
-const CodeEditor = ({ questionNumber }) => {
+const CodeEditor = ({ questionNumber, question }) => {
     const [code, setCode] = useState('# Start coding here...');
     const [language, setLanguage] = useState('python');
     const [theme, setTheme] = useState('monokai');
@@ -43,9 +43,13 @@ const CodeEditor = ({ questionNumber }) => {
 
     const handleSubmit = async () => {
         try {
-            const response = await axios.post('http://localhost:5000/submit-code', { code, language, question_number: questionNumber });
+            const response = await axios.post('http://localhost:5000/exam/submit-code', { code, language, question_number: questionNumber, question });
             if (response.status === 200) {
-                setNotification({ type: 'success', message: 'Code submitted successfully!' });
+                const evaluationResult = response.data.submission.evaluation;
+                setNotification({
+                    type: evaluationResult === 'correct' ? 'success' : 'warning',
+                    message: `Code submitted successfully! Evaluation result: ${evaluationResult}`
+                });
             } else {
                 setNotification({ type: 'error', message: 'Failed to submit code.' });
             }

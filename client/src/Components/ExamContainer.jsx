@@ -58,6 +58,7 @@ const ExamContainer = ({
                         <CodeEditor
                             onSubmitCode={handleCodeSubmissionFeedback}
                             questionNumber={currentQuestionIndex + 1} // Pass the correct question number
+                            question={questions[currentQuestionIndex].question}
                         />
                     )}
                 </>
