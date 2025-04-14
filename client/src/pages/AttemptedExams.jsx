@@ -24,25 +24,45 @@ const AttemptedExams = () => {
   }, [username]);
 
   return (
-    <div className="attempted-exams p-4">
-      <h2 className="text-xl font-semibold mb-4">Attempted Exams</h2>
+    <div className="attempted-exams p-6">
+      <h2 className="text-2xl font-semibold mb-6">Attempted Exams</h2>
+
       {attemptedExams.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {attemptedExams.map((exam, index) => (
-            <div 
-              key={index} 
-              className="card p-4 bg-white shadow rounded cursor-pointer"
-              onClick={() => navigate(`/exam/dashboard/${exam.examId}`)}
-            >
-              <h3 className="font-bold">Exam: {exam.examId}</h3>
-              <p>Name: {exam.examName}</p>
-              <p>Duration: {exam.examDuration} minutes</p>
-              <p>Date: {new Date(exam.examDate).toLocaleDateString()}</p>
-            </div>
-          ))}
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 bg-white shadow rounded-lg">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Exam Name</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Exam ID</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Duration</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Date</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {attemptedExams.filter(elem => elem.examName).map((exam, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 text-sm text-gray-900">{exam.examName}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">{exam.examId}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">{exam.examDuration} min</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {new Date(exam.examDate).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4">
+                    <button
+                      onClick={() => navigate(`/exam/dashboard/${exam.examId}`)}
+                      className="text-indigo-600 hover:text-indigo-800 font-medium text-sm"
+                    >
+                      View
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : (
-        <p>No attempted exams found.</p>
+        <p className="text-gray-600">No attempted exams found.</p>
       )}
     </div>
   );

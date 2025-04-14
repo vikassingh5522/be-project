@@ -1,5 +1,11 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useParams,
+} from "react-router-dom";
 import { useVerifyToken } from "./hooks/useVerifyToken";
 import Home from "./pages/Home";
 import Signup from "./pages/Signup";
@@ -17,6 +23,8 @@ import AttemptedExams from "./pages/AttemptedExams";
 import CreatedExams from "./pages/CreatedExams"; // For instructor's created exams
 import ExamAttempts from "./pages/ExamAttempts"; // For instructor to view student attempts
 import ActiveExamsList from "./pages/ActiveExamsList"; // New active exams section
+import Notification from "./pages/Notification";
+import {Toaster} from "react-hot-toast";
 
 // Wrapper to extract examId from URL parameters for ExamDashboard if needed.
 const ExamDashboardWrapper = () => {
@@ -33,6 +41,8 @@ function App() {
   }
 
   return (
+    <>
+    <Toaster position="top-center" reverseOrder={false} />
     <BrowserRouter>
       <Routes>
         {/* Public Routes */}
@@ -54,38 +64,78 @@ function App() {
               <Navigate to="/auth/login" replace />
             )
           }
-        >
+          >
           {/* Nested student dashboard routes */}
           {currentUser && currentUser.role === "student" && (
             <>
-              <Route index element={<ExamList role={currentUser.role} username={currentUser.username} />} />
-              <Route path="exams/assigned" element={<ExamList role={currentUser.role} username={currentUser.username} />} />
-              <Route path="exams/practice" element={<ExamList role={currentUser.role} username={currentUser.username} />} />
+              <Route
+                index
+                element={
+                  <ExamList
+                    role={currentUser.role}
+                    username={currentUser.username}
+                    />
+                }
+              />
+              <Route
+                path="exams/assigned"
+                element={
+                  <ExamList
+                  role={currentUser.role}
+                    username={currentUser.username}
+                    />
+                }
+              />
+              <Route
+                path="exams/practice"
+                element={
+                  <ExamList
+                    role={currentUser.role}
+                    username={currentUser.username}
+                  />
+                }
+                />
               <Route path="exams/attempted" element={<AttemptedExams />} />
             </>
           )}
           {/* Nested instructor dashboard routes */}
           {currentUser && currentUser.role !== "student" && (
             <>
-              <Route index element={<CreatedExams instructor={currentUser.username} />} />
-              <Route path="exams/active" element={<ActiveExamsList instructor={currentUser.username} />} />
+              <Route
+                index
+                element={<CreatedExams instructor={currentUser.username} />}
+                />
+              <Route
+                path="exams/active"
+                element={<ActiveExamsList instructor={currentUser.username} />}
+                />
               <Route path="exams/attempts/:examId" element={<ExamAttempts />} />
+            </>
+          )}
+
+          {currentUser && currentUser.role !== "student" && (
+            <>
+              <Route path="notification" element={<Notification />} />
             </>
           )}
         </Route>
 
         {/* Other Protected Routes */}
         {/* Use the toggleable component in place of JoinExam for testing */}
-       { /*<Route path="/exam/join" element={<ToggleableExamJoin />} />*/}
+        {/*<Route path="/exam/join" element={<ToggleableExamJoin />} />*/}
         <Route path="/exam/join/:examId" element={<JoinExam />} />
         <Route path="/exam/create" element={<ExamCreation />} />
         <Route path="/exam/:examId" element={<Exam />} />
-        <Route path="/exam/dashboard/:examId" element={<ExamDashboardWrapper />} />
+        <Route
+          path="/exam/dashboard/:examId"
+          element={<ExamDashboardWrapper />}
+        />
 
         {/* Fallback Route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
+    </>
   );
 }
 

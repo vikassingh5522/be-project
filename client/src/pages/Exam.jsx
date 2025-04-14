@@ -13,6 +13,7 @@ import FullscreenPrompt from '../Components/FullscreenPrompt';
 import ToggleableWebcam from '../Components/ToggleableWebcam';
 import Timer from '../Components/Timer';
 import AudioRecorder from "../Components/AudioRec";
+import { FaAudible, FaCheck, FaClock, FaMicrophone, FaShieldAlt } from 'react-icons/fa';
   
 function Exam() {
   const { examId } = useParams();
@@ -32,7 +33,7 @@ function Exam() {
   const navigate = useNavigate();
   const audioRecorderRef = useRef(null); // Ref to access AudioRecorder methods
 
-  useTabFocusMonitor();
+  // useTabFocusMonitor();
   useKeyLogger(isLoggingActive, setKeyLogs);
 
   // Fetch exam details based on the examId from the URL
@@ -41,7 +42,6 @@ function Exam() {
       fetch(`http://localhost:5000/exam/details/${examId}`)
         .then((res) => res.json())
         .then((data) => {
-          console.log("Fetched exam details:", data);
           if (data.success) {
             setQuestions(data.questions);
             setExamDuration(data.duration);
@@ -209,48 +209,79 @@ function Exam() {
     ? `http://localhost:5000/static/mobile_monitor.html?token=${examToken}` 
     : "";
 
-  return (
-    <div className="App min-h-screen bg-gray-100 flex flex-col items-center justify-center">
-      <h1 className="text-4xl font-bold mb-6 text-gray-800">Online Exam</h1>
-      {error && <p className="text-red-500">{error}</p>}
-      {/* Before the exam starts */}
-      {!examStarted && (
-        <div>
-          <p className="mb-4">Exam ID: {examId}</p>
-          <p className="mb-4">Exam Duration: {examDuration} minutes</p>
-          <StartExamButton onClick={startExam} />
-        </div>
-      )}
-      {/* When the exam is active */}
-      {examStarted && (
-        <>
-          <Header exitCount={exitCount} />
-          <Timer initialMinutes={examDuration} onTimeUp={handleTimeUp} />
-          {/* AudioRecorder now uses a ref for submission integration */}
+ return (
+  <div className="min-h-screen bg-gradient-to-br from-white-100 px-4 to-white-300 flex flex-col items-center justify-start py-10 px-4">
+    <h1 className="text-4xl font-bold text-gray-800 mb-6">Online Exam</h1>
+    {examStarted && (
+      <div className='flex gap-2 w-full px-4 '>
+      <div className='card rounded-md flex-auto bg-violet-100 flex flex-col p-4'>
+          <FaClock className=' animate-spin text-violet-600 ' />
+          <p className='text-gray-800 font-semibold text-xl'>Exam Information</p>
+        <Timer initialMinutes={examDuration} onTimeUp={handleTimeUp} />
+
+      </div>
+      <div className='card rounded-md flex-auto bg-violet-100 flex flex-col p-4'>
+          <FaShieldAlt className=' text-violet-600 ' />
+          <p className='text-gray-800 font-semibold text-lg'>Proctoring Status</p>
+          <p className='text-gray-500 font-semibold text-sm'>All System Active</p>
+
+      </div>
+      <div className='card rounded-md flex-auto bg-violet-100 flex flex-col p-4'>
+          <FaCheck className=' text-violet-600 ' />
+          <p className='text-gray-800 font-semibold text-xl'>Progress</p>
+          <p className='text-gray-500 font-semibold text-sm'>Question {currentQuestionIndex + 1} of {questions.length}</p>
+      </div>
+
+      <div className='card rounded-md flex-auto bg-violet-100 flex flex-col p-4'>
+          <FaMicrophone className=' text-violet-600 animate-pulse ' />
+          <p className='text-xl text-gray-800  font-semibold'>Audio Status</p>
           <AudioRecorder ref={audioRecorderRef} examId={examId} token={examToken} />
-          
-          {questions.length > 0 ? (
-            <ExamContainer
-              questions={questions}
-              currentQuestionIndex={currentQuestionIndex}
-              handleOptionChange={handleOptionChange}
-              selectedAnswers={selectedAnswers}
-              onNext={handleNext}
-              onPrevious={handlePrevious}
-              onSubmit={handleSubmit}
-            />
-          ) : (
-            <p className="text-red-500">No questions loaded. Please contact the administrator.</p>
-          )}
-        </>
-      )}
-      <ToggleableWebcam showWebcam={showWebcam} onToggle={() => setShowWebcam(prev => !prev)} />
-      {examStarted && <KeyLogs keyLogs={keyLogs} />}
-      {isFullscreenPromptVisible && (
-        <FullscreenPrompt onReenter={handleReenterFullscreen} />
-      )}
-    </div>
-  );
+      </div>
+</div>
+    )
+    }
+
+    {error && <p className="text-red-500 mb-4">{error}</p>}
+
+    {!examStarted ? (
+      <div className="bg-white rounded-2xl p-8 w-full max-w-3xl flex flex-col items-center">
+        <p className="text-lg text-gray-600 mb-2">Exam ID: <span className="font-medium text-gray-800">{examId}</span></p>
+        <p className="text-lg text-gray-600 mb-6">Exam Duration: <span className="font-medium text-gray-800">{examDuration} minutes</span></p>
+        <StartExamButton onClick={startExam} />
+      </div>
+    ) : (
+      <div className="w-full rounded-2xl p-6 space-y-6">
+        <Header exitCount={exitCount} />
+        <div className="flex justify-end">
+        </div>
+        
+        
+        {questions.length > 0 ? (
+          <ExamContainer
+            questions={questions}
+            currentQuestionIndex={currentQuestionIndex}
+            handleOptionChange={handleOptionChange}
+            selectedAnswers={selectedAnswers}
+            onNext={handleNext}
+            onPrevious={handlePrevious}
+            onSubmit={handleSubmit}
+          />
+        ) : (
+          <p className="text-red-500 text-center">No questions loaded. Please contact the administrator.</p>
+        )}
+      </div>
+    )}
+
+    {examStarted && (
+      <>
+        <ToggleableWebcam showWebcam={showWebcam} onToggle={() => setShowWebcam(prev => !prev)} />
+        <KeyLogs keyLogs={keyLogs} />
+      </>
+    )}
+    {isFullscreenPromptVisible && <FullscreenPrompt onReenter={handleReenterFullscreen} />}
+  </div>
+);
+
 }
 
 export default Exam;

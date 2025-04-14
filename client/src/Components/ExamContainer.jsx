@@ -25,16 +25,21 @@ const ExamContainer = ({
     }
 
     return (
-        <div className="exam-container p-6 bg-white rounded shadow-md w-3/4 mx-auto">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800">
-                Question {currentQuestionIndex + 1} of {questions.length}
+        <div className="exam-container  bg-white rounded w-full">
+            
+            
+
+            <h2 className="text-xl font-semibold mb-4 bg-violet-100 p-4 rounded-md text-gray-800">
+                <h4 className='text-base'>General Knowledge</h4>
+                Question {currentQuestionIndex + 1}
             </h2>
-            <p className="mb-4">{currentQuestion.question}</p>
+            <p className="mb-4 font-bold">{currentQuestion.question}</p>
             {currentQuestion.type === 'mcq' && (
                 <div className="options mb-6">
                     {currentQuestion.options.map((option, index) => (
                         <label key={index} className="block mb-2">
                             <input
+                                className='accent-violet-500 bg-violet-400 p-2'
                                 type="radio"
                                 name={`question-${currentQuestionIndex}`}
                                 value={option}

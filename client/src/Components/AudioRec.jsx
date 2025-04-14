@@ -86,7 +86,7 @@ const AudioRecorder = forwardRef(({ examId, token }, ref) => {
 
   return (
     <div>
-      <p>{recording ? "Recording in progress..." : "Recording stopped."}</p>
+      <p className="text-gray-500 font-semibold">{recording ? "Active" : "Passive"}</p>
     </div>
   );
 });

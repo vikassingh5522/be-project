@@ -94,10 +94,10 @@ const JoinExam = () => {
               Scan this QR code with your mobile device to confirm your presence:
             </p>
             <QRCodeCanvas value={mobileMonitorURL} size={200} />
-            <p className="text-sm mt-2">
+            <p className="text-sm mt-2 ">
               Mobile URL:{" "}
-              <a href={mobileMonitorURL} target="_blank" rel="noreferrer">
-                {mobileMonitorURL}
+              <a href={mobileMonitorURL} className="text-blue-400 hover:underline" target="_blank" rel="noreferrer">
+                Click to Proceed
               </a>
             </p>
             <p className="mt-2">

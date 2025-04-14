@@ -8,7 +8,7 @@ const StudentDashboard = ({ user }) => {
     <section className="min-h-screen bg-slate-50">
       <div className="flex min-h-screen">
         <SideBar role={user?.role} />
-        <div className="wrap w-full">
+        <div className="wrap w-full lg:ml-[20%] md:ml-36  *:w-full">
           <DashboardHeader username={user?.username} />
           {/* The Outlet renders the nested route components (e.g., ExamList or AttemptedExams) */}
           <Outlet />

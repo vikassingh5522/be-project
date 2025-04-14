@@ -24,7 +24,7 @@ const Timer = ({ initialMinutes, onTimeUp }) => {
     };
 
     return (
-        <div className="timer text-xl font-bold text-red-600">
+        <div className="timer text-base font-bold text-gray-500">
             Time Left: {formatTime(timeLeft)}
         </div>
     );
