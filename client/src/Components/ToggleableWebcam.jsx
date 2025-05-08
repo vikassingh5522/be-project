@@ -1,7 +1,7 @@
 import React from 'react';
 import WebcamCapture from './WebcamCapture';
 
-const ToggleableWebcam = ({ showWebcam, onToggle }) => (
+const ToggleableWebcam = ({ showWebcam, onToggle, exam_id }) => (
     <div className="flex flex-col items-center">
         <button
             onClick={onToggle}
@@ -13,7 +13,7 @@ const ToggleableWebcam = ({ showWebcam, onToggle }) => (
             className="webcam-container mt-6"
             style={{ visibility: showWebcam ? 'visible' : 'hidden' }}
         >
-            <WebcamCapture />
+            <WebcamCapture exam_id={exam_id} />
         </div>
     </div>
 );

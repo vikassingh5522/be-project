@@ -20,6 +20,7 @@ def init_db():
         db_exams = db["exams"]
         users_collection = db["users"]
         mobile_activity_logs = db["mobile_activity_logs"]
+        frames = db["frames"]
         
         return {
             "client": client,
@@ -27,7 +28,8 @@ def init_db():
             "db_collection": db_collection,
             "db_exams": db_exams,
             "users_collection": users_collection,
-            "mobile_activity_logs": mobile_activity_logs
+            "mobile_activity_logs": mobile_activity_logs,
+            "frames": frames
         }
     except Exception as e:
         print(e)

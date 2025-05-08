@@ -5,7 +5,8 @@ from config import Config
 import uuid
 import os
 from code_eval.evaluation import evaluate_code_with_gemini
-from datetime import datetime
+import datetime
+from datetime import timezone
 from database import init_db
 from werkzeug.utils import secure_filename
 from upload.utils import allowed_file
@@ -221,7 +222,7 @@ def submit_code():
             "question_id": question_id,
             "submitted_code": submitted_code,
             "evaluation": evaluation_result,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.datetime.now(timezone.utc)
         }
 
         print(submission_doc)
@@ -247,7 +248,7 @@ def exam_attempted():
         attempts = list(db_collection.find({"username": username}))
         for attempt in attempts:
             attempt["_id"] = str(attempt["_id"])
-            if "submittedAt" in attempt and isinstance(attempt["submittedAt"], datetime):
+            if "submittedAt" in attempt and isinstance(attempt["submittedAt"], datetime.datetime):
                 attempt["submittedAt"] = attempt["submittedAt"].isoformat()
         return jsonify({"success": True, "attemptedExams": attempts}), 200
     except Exception as e:
@@ -332,7 +333,7 @@ def exam_result():
     attempt = db_collection.find_one({"examId": exam_id, "username": username})
     if attempt:
         attempt["_id"] = str(attempt["_id"])
-        if "submittedAt" in attempt and isinstance(attempt["submittedAt"], datetime):
+        if "submittedAt" in attempt and isinstance(attempt["submittedAt"], datetime.datetime):
             attempt["submittedAt"] = attempt["submittedAt"].isoformat()
         return jsonify({"success": True, "result": attempt}), 200
     else:

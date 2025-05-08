@@ -4,7 +4,7 @@ import Webcam from "react-webcam";
 import axios from "axios";
 import toast from "react-hot-toast";
 
-const WebcamCapture = () => {
+const WebcamCapture = ({exam_id}) => {
   const webcamRef = useRef(null);
   const [lastToastTime, setLastToastTime] = useState(0);
 const toastCooldown = 5000; // 5 seconds
@@ -18,6 +18,7 @@ const toastCooldown = 5000; // 5 seconds
       axios
         .post("http://localhost:5000/upload", {
           image: imageSrc,
+          exam_id: exam_id
         }, {withCredentials: true})
         .then((response) => {
           setDetectedObjects(response.data.objects || []);

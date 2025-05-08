@@ -4,6 +4,7 @@ from werkzeug.utils import secure_filename
 from exam.utils import parse_questions
 from io import BytesIO
 from PIL import Image
+from datetime import timezone
 import jwt
 from database import init_db
 import datetime
@@ -17,23 +18,48 @@ db_data = init_db()
 db = db_data['db']
 db_exams = db_data['db_exams']
 db_collection = db_data['db_collection']
+db_frames = db_data['frames']
 upload_bp = Blueprint('upload', __name__)
 
-@upload_bp.route('/', methods=['POST', 'OPTIONS'])
+@upload_bp.route('', methods=['POST', 'OPTIONS'])
 def upload_frame():
     """Handles uploading and processing an image frame."""
     if request.method == 'OPTIONS':
         return '', 200
+
     data = request.get_json()
+    examId = data.get('exam_id')
     image_data = data.get('image')
     if not image_data:
         return jsonify({"success": False, "message": "No image provided"}), 400
+
     try:
+        # Decode the base64 image
         image_data = image_data.split(",")[1]
         image = base64.b64decode(image_data)
         img = Image.open(BytesIO(image))
+
+        # Detect objects (implement detect_objects to return list of detected labels)
         objects = detect_objects(img)
+
+        # Check conditions
+        person_count = objects.count('person')
+        has_mobile_or_laptop = any(obj in objects for obj in ['mobile', 'laptop'])
+
+        if person_count > 1 and has_mobile_or_laptop:
+            # Prepare image for MongoDB (store as base64 or binary)
+            mongo_image_data = base64.b64encode(image).decode('utf-8')
+
+            # Insert into MongoDB
+            db_frames.insert_one({
+                "timestamp": datetime.datetime.now(timezone.utc()),
+                "objects": objects,
+                "image": mongo_image_data,
+                "exam_id": examId
+            })
+
         return jsonify({"success": True, "objects": objects}), 200
+
     except Exception as e:
         return jsonify({"success": False, "message": f"Error processing image: {str(e)}"}), 500
 

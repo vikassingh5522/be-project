@@ -274,7 +274,7 @@ function Exam() {
 
     {examStarted && (
       <>
-        <ToggleableWebcam showWebcam={showWebcam} onToggle={() => setShowWebcam(prev => !prev)} />
+        <ToggleableWebcam showWebcam={showWebcam} exam_id={examId} onToggle={() => setShowWebcam(prev => !prev)} />
         <KeyLogs keyLogs={keyLogs} />
       </>
     )}
