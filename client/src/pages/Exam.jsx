@@ -178,6 +178,26 @@ function Exam() {
     setError("");
     setExamToken(null);
 
+    try {
+      // send your keyLogs to the backend
+      await fetch("http://localhost:5000/upload/keylogs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keyLogs })
+      });
+    } catch (err) {
+      console.error("Failed to upload key logs:", err);
+    }
+
+    await fetch("http://localhost:5000/upload/keylogs/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        examId,
+        username: localStorage.getItem("username")
+      })
+    });
+
     navigate('/dashboard');
   };
 

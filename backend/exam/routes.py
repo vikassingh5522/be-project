@@ -3,6 +3,7 @@ from exam.utils import parse_questions
 from database import init_db
 from config import Config
 import uuid
+from flask_cors import cross_origin
 import os
 from code_eval.evaluation import evaluate_code_with_gemini
 import datetime
@@ -123,6 +124,7 @@ def exam_created():
 
 
 @exam_bp.route('/attempts', methods=['GET'])
+@cross_origin(origins=["http://localhost:3000"], supports_credentials=True)
 def exam_attempts():
     exam_id = request.args.get("examId")
     if not exam_id:
@@ -130,9 +132,29 @@ def exam_attempts():
 
     attempts = list(db_collection.find({"examId": exam_id}))
     for attempt in attempts:
+        # always stringify the Mongo ObjectId
         attempt["_id"] = str(attempt["_id"])
-        if "submittedAt" in attempt and attempt["submittedAt"]:
-            attempt["submittedAt"] = attempt["submittedAt"].isoformat()
+
+        # only call .isoformat() on real datetime objects
+        sub = attempt.get("submittedAt")
+        if isinstance(sub, datetime.datetime):
+            attempt["submittedAt"] = sub.isoformat()
+
+        st = attempt.get("startedAt")
+        if isinstance(st, datetime.datetime):
+            attempt["startedAt"] = st.isoformat()
+        
+        # --- NEW: build cheatingActivities from suspiciousKeylogs ---
+        suspicious = attempt.get("suspiciousKeylogs", {})
+        cheating_list = []
+        for action, hits in suspicious.items():
+            # hits is a dict like { "ctrl+c": 3, ... }
+            for keystroke, count in hits.items():
+                cheating_list.append(f"{keystroke} ({count})")
+        attempt["cheatingActivities"] = cheating_list
+        # (optional) delete the raw field if you don’t want to expose it:
+        # attempt.pop("suspiciousKeylogs", None)
+
     return jsonify({"success": True, "attempts": attempts}), 200
 
 @exam_bp.route('/submit', methods=['POST'])

@@ -34,6 +34,7 @@ const ExamAttempts = () => {
               <th className="border p-2">Score</th>
               <th className="border p-2">Submitted At</th>
               <th className="border p-2">Audio Recordings</th>
+              <th className="border p-2">Cheating Activities</th>
             </tr>
           </thead>
           <tbody>
@@ -57,6 +58,7 @@ const ExamAttempts = () => {
                     "No recordings"
                   )}
                 </td>
+                <td className="border p-2">{attempt.cheatingActivities && attempt.cheatingActivities.length > 0? attempt.cheatingActivities.join(", "): "None"}</td>
               </tr>
             ))}
           </tbody>

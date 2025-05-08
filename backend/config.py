@@ -12,8 +12,8 @@ class Config:
     FRAME_DIR = "assets/received_frames"
     CODE_DIR = "assets/received_codes"
     AUDIO_UPLOAD_FOLDER = "assets/uploaded_audio_fragments"
-
-    for directory in [UPLOAD_FOLDER, FRAME_DIR, CODE_DIR, AUDIO_UPLOAD_FOLDER]:
+    KEYLOG_FOLDER = "assets/received_keylogs"
+    for directory in [UPLOAD_FOLDER, FRAME_DIR, CODE_DIR, AUDIO_UPLOAD_FOLDER, KEYLOG_FOLDER]:
         os.makedirs(directory, exist_ok=True)
         
     MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10 MB
