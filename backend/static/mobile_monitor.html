@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Mobile Exam Monitor</title>
+  <script>
+    // Utility function to decode a JWT token payload.
+    function parseJwt (token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+      } catch (error) {
+        console.error("Error parsing JWT:", error);
+        return null;
+      }
+    }
+
+    // Extract the exam token from the URL parameters.
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    // (Optional) decode the token to display exam ID
+    let examId = "";
+    const payload = parseJwt(token);
+    if (payload && payload.examId) {
+      examId = payload.examId;
+    }
+
+    // Record baseline dimensions when the page loads.
+    let baselineWidth = window.innerWidth;
+    let baselineHeight = window.innerHeight;
+
+    // Function to send an event log (heartbeat, focus, etc.) to the server.
+    function sendMobileEvent(eventType = 'heartbeat') {
+      const payload = {
+        token: token,
+        timestamp: new Date().toISOString(),
+        event: eventType,
+        tabFocus: document.hasFocus(),
+        screenWidth: window.innerWidth,
+        screenHeight: window.innerHeight
+      };
+
+      fetch('http://192.168.65.136:5000/mobile/heartbeat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(response => response.json())
+      .then(data => console.log('Mobile event logged:', data))
+      .catch(err => console.error('Error logging mobile event:', err));
+    }
+
+    // Function called when the user taps the "Confirm Presence" button.
+    function confirmPresence() {
+      const payload = {
+        token: token,
+        timestamp: new Date().toISOString(),
+        event: 'confirm'
+      };
+      fetch('http://192.168.65.136:5000/mobile/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Mobile confirmation logged:', data);
+        alert("Presence confirmed. You may now proceed with your exam.");
+        document.getElementById('confirmBtn').style.display = 'none';
+        document.getElementById('statusMsg').innerText = "Presence confirmed. You may now proceed with your exam.";
+      })
+      .catch(err => console.error('Error confirming mobile presence:', err));
+    }
+
+    // Send a heartbeat every 5 seconds.
+    setInterval(() => {
+      sendMobileEvent('heartbeat');
+    }, 10000);
+
+    // Monitor focus events.
+    window.addEventListener('focus', () => {
+      console.log("Window gained focus. Dimensions:", window.innerWidth + "x" + window.innerHeight);
+      sendMobileEvent('focus');
+    });
+
+    window.addEventListener('blur', () => {
+      console.log("Window lost focus.");
+      sendMobileEvent('blur');
+    });
+
+    // Monitor window resize.
+    window.addEventListener('resize', () => {
+      console.log("Window resized from baseline " + baselineWidth + "x" + baselineHeight + " to " + window.innerWidth + "x" + window.innerHeight);
+      if (window.innerWidth !== baselineWidth || window.innerHeight !== baselineHeight) {
+        sendMobileEvent('resize');
+      } else {
+        sendMobileEvent('resize');
+      }
+    });
+
+    // Monitor visibility change.
+    document.addEventListener('visibilitychange', () => {
+      console.log("Document visibility changed. Current state:", document.visibilityState);
+      sendMobileEvent('visibilitychange');
+    });
+  </script>
+</head>
+<body>
+  <h1>Mobile Exam Monitor</h1>
+  <p>This page monitors your mobile device during the exam. Please do not interact with it.</p>
+  <p><strong>Exam ID:</strong> <span id="examIdDisplay"></span></p>
+  <button id="confirmBtn" onclick="confirmPresence()">Confirm Presence</button>
+  <p id="statusMsg"></p>
+  <script>
+    // Display the exam ID on the page for cross-checking.
+    document.getElementById('examIdDisplay').innerText = examId || "Not available";
+  </script>
+</body>
+</html>

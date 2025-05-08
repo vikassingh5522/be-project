@@ -19,6 +19,35 @@ db_collection = db_data['db_collection']
 
 exam_bp = Blueprint('exam', __name__)
 
+@exam_bp.route('/active', methods=['GET'])
+def exam_active():
+    import datetime
+    try:
+        now = datetime.datetime.now(datetime.timezone.utc)
+        active_exams = []
+        exams_cursor = db_exams.find({})
+        for exam in exams_cursor:
+            active_start = exam.get("active_start")
+            active_end = exam.get("active_end")
+            if active_start and active_end:
+                try:
+                    active_start_dt = datetime.datetime.fromisoformat(active_start)
+                    if active_start_dt.tzinfo is None:
+                        active_start_dt = active_start_dt.replace(tzinfo=datetime.timezone.utc)
+                    active_end_dt = datetime.datetime.fromisoformat(active_end)
+                    if active_end_dt.tzinfo is None:
+                        active_end_dt = active_end_dt.replace(tzinfo=datetime.timezone.utc)
+                except Exception as conv_err:
+                    print("Conversion error:", conv_err)
+                    continue
+                if active_start_dt <= now <= active_end_dt:
+                    exam["_id"] = str(exam["_id"])
+                    active_exams.append(exam)
+        return jsonify({"success": True, "exams": active_exams}), 200
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @exam_bp.route('/create', methods=['POST'])
 def createExam():
     uid = str(uuid.uuid4())
@@ -218,7 +247,7 @@ def exam_attempted():
         attempts = list(db_collection.find({"username": username}))
         for attempt in attempts:
             attempt["_id"] = str(attempt["_id"])
-            if "submittedAt" in attempt and isinstance(attempt["submittedAt"], datetime.datetime):
+            if "submittedAt" in attempt and isinstance(attempt["submittedAt"], datetime):
                 attempt["submittedAt"] = attempt["submittedAt"].isoformat()
         return jsonify({"success": True, "attemptedExams": attempts}), 200
     except Exception as e:
@@ -303,7 +332,7 @@ def exam_result():
     attempt = db_collection.find_one({"examId": exam_id, "username": username})
     if attempt:
         attempt["_id"] = str(attempt["_id"])
-        if "submittedAt" in attempt and isinstance(attempt["submittedAt"], datetime.datetime):
+        if "submittedAt" in attempt and isinstance(attempt["submittedAt"], datetime):
             attempt["submittedAt"] = attempt["submittedAt"].isoformat()
         return jsonify({"success": True, "result": attempt}), 200
     else:

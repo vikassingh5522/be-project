@@ -18,7 +18,7 @@ const toastCooldown = 5000; // 5 seconds
       axios
         .post("http://localhost:5000/upload", {
           image: imageSrc,
-        })
+        }, {withCredentials: true})
         .then((response) => {
           setDetectedObjects(response.data.objects || []);
           // console.log('Frame sent successfully', response.data);

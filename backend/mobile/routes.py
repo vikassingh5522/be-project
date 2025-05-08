@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-import database
+from exam.routes import db
 from config import Config
 import jwt
 import os

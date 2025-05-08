@@ -14,7 +14,7 @@ def create_app(config_class=config):
     app = Flask(__name__)
     app.config.from_object(config_class)
     
-    CORS(app, resources={r"/*": {"origins": "*"}})
+    CORS(app, resources={r"/*": {"origins": "*"}, })
     
     # Initialize database
     try:

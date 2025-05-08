@@ -19,9 +19,11 @@ db_exams = db_data['db_exams']
 db_collection = db_data['db_collection']
 upload_bp = Blueprint('upload', __name__)
 
-@upload_bp.route('/', methods=['POST'])
+@upload_bp.route('/', methods=['POST', 'OPTIONS'])
 def upload_frame():
     """Handles uploading and processing an image frame."""
+    if request.method == 'OPTIONS':
+        return '', 200
     data = request.get_json()
     image_data = data.get('image')
     if not image_data:
