@@ -44,17 +44,15 @@ def upload_frame():
 
         # Check conditions
         person_count = objects.count('person')
-        has_mobile_or_laptop = any(obj in objects for obj in ['mobile', 'laptop'])
-
-        if person_count > 1 and has_mobile_or_laptop:
+        has_mobile_or_laptop = any(obj in objects for obj in ['cell phone', 'laptop'])
+        if person_count > 1 or has_mobile_or_laptop:
             # Prepare image for MongoDB (store as base64 or binary)
-            mongo_image_data = base64.b64encode(image).decode('utf-8')
-
+            
             # Insert into MongoDB
             db_frames.insert_one({
-                "timestamp": datetime.datetime.now(timezone.utc()),
+                "timestamp": datetime.datetime.now(datetime.timezone.utc),
                 "objects": objects,
-                "image": mongo_image_data,
+                "image": image_data,
                 "exam_id": examId
             })
 
