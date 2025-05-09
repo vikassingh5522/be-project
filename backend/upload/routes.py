@@ -25,43 +25,56 @@ upload_bp = Blueprint('upload', __name__)
 
 @upload_bp.route('', methods=['POST', 'OPTIONS'])
 def upload_frame():
-    """Handles uploading and processing an image frame."""
     if request.method == 'OPTIONS':
         return '', 200
 
-    data = request.get_json()
-    examId = data.get('exam_id')
-    image_data = data.get('image')
-    if not image_data:
-        return jsonify({"success": False, "message": "No image provided"}), 400
+    data       = request.get_json(force=True)
+    exam_id    = data.get('exam_id')
+    image_blob = data.get('image')
+
+    if not image_blob:
+        return jsonify(success=False, message="No image provided"), 400
+
+    # 1) extract token from either JSON or Bearer header safely
+    token = data.get('token')
+    auth_header = request.headers.get('Authorization', '')
+    if not token and auth_header:
+        parts = auth_header.split(" ", 1)
+        if len(parts) == 2 and parts[0].lower() == "bearer":
+            token = parts[1]
+
+    # 2) decode JWT
+    username = "anonymous"
+    if token:
+        try:
+            payload = jwt.decode(token, os.getenv("JWT_SECRET"), algorithms=["HS256"])
+            username = payload.get("username", username)
+        except jwt.PyJWTError:
+            pass
 
     try:
-        # Decode the base64 image
-        image_data = image_data.split(",")[1]
-        image = base64.b64decode(image_data)
-        img = Image.open(BytesIO(image))
+        # strip off the base64 metadata prefix
+        b64data = image_blob.split(",", 1)[1]
+        raw     = base64.b64decode(b64data)
+        img     = Image.open(BytesIO(raw))
 
-        # Detect objects (implement detect_objects to return list of detected labels)
-        objects = detect_objects(img)
+        objects      = detect_objects(img)
+        person_count = objects.count("person")
+        has_phone    = any(o in ("cell phone","laptop") for o in objects)
 
-        # Check conditions
-        person_count = objects.count('person')
-        has_mobile_or_laptop = any(obj in objects for obj in ['cell phone', 'laptop'])
-        if person_count > 1 or has_mobile_or_laptop:
-            # Prepare image for MongoDB (store as base64 or binary)
-            
-            # Insert into MongoDB
+        if person_count > 1 or has_phone:
             db_frames.insert_one({
                 "timestamp": datetime.datetime.now(datetime.timezone.utc),
-                "objects": objects,
-                "image": image_data,
-                "exam_id": examId
+                "exam_id":   exam_id,
+                "username":  username,
+                "objects":   objects,
+                "image":     b64data
             })
 
-        return jsonify({"success": True, "objects": objects}), 200
+        return jsonify(success=True, objects=objects), 200
 
     except Exception as e:
-        return jsonify({"success": False, "message": f"Error processing image: {str(e)}"}), 500
+        return jsonify(success=False, message=f"Error: {e}"), 500
 
 @upload_bp.route('/file', methods=['POST'])
 def upload_file():

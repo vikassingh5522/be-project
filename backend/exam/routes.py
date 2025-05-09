@@ -18,7 +18,7 @@ db_data = init_db()
 db = db_data['db']
 db_exams = db_data['db_exams']
 db_collection = db_data['db_collection']
-
+db_frames = db_data['frames']
 exam_bp = Blueprint('exam', __name__)
 
 @exam_bp.route('/active', methods=['GET'])
@@ -126,34 +126,44 @@ def exam_created():
 @exam_bp.route('/attempts', methods=['GET'])
 @cross_origin(origins=["http://localhost:3000"], supports_credentials=True)
 def exam_attempts():
+    # 1) grab the camelCase param
     exam_id = request.args.get("examId")
     if not exam_id:
         return jsonify({"success": False, "message": "Missing examId"}), 400
 
-    attempts = list(db_collection.find({"examId": exam_id}))
-    for attempt in attempts:
-        # always stringify the Mongo ObjectId
-        attempt["_id"] = str(attempt["_id"])
+    # 2) load all attempt documents for this exam
+    cursor = db_collection.find({ "examId": exam_id })
+    attempts = []
 
-        # only call .isoformat() on real datetime objects
-        sub = attempt.get("submittedAt")
+    for a in cursor:
+        # make IDs/datetimes JSON-safe
+        a["_id"] = str(a["_id"])
+        sub = a.get("submittedAt")
         if isinstance(sub, datetime.datetime):
-            attempt["submittedAt"] = sub.isoformat()
+            a["submittedAt"] = sub.isoformat()
 
-        st = attempt.get("startedAt")
-        if isinstance(st, datetime.datetime):
-            attempt["startedAt"] = st.isoformat()
-        
-        # --- NEW: build cheatingActivities from suspiciousKeylogs ---
-        suspicious = attempt.get("suspiciousKeylogs", {})
+        # 3) build cheatingActivities from suspiciousKeylogs
+        suspicious = a.get("suspiciousKeylogs", {})
         cheating_list = []
-        for action, hits in suspicious.items():
-            # hits is a dict like { "ctrl+c": 3, ... }
-            for keystroke, count in hits.items():
+        for action_hits in suspicious.values():
+            for keystroke, count in action_hits.items():
                 cheating_list.append(f"{keystroke} ({count})")
-        attempt["cheatingActivities"] = cheating_list
-        # (optional) delete the raw field if you don’t want to expose it:
-        # attempt.pop("suspiciousKeylogs", None)
+        a["cheatingActivities"] = cheating_list
+
+        # 4) fetch flagged frames for this user+exam
+        user = a.get("username")
+        frames_cursor = db_frames.find({
+            "exam_id":  exam_id,  # snake_case in your frames collection
+            "username": user
+        })
+        frames = [{
+            "timestamp": f["timestamp"],
+            "objects":   f["objects"],
+            "image":     f["image"]
+        } for f in frames_cursor]
+        a["cheatingFrames"] = frames
+
+        attempts.append(a)
 
     return jsonify({"success": True, "attempts": attempts}), 200
 

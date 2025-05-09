@@ -15,11 +15,15 @@ const toastCooldown = 5000; // 5 seconds
   const sendFrameToBackend = useCallback(() => {
     const imageSrc = webcamRef.current.getScreenshot();
     if (imageSrc) {
+      const token = localStorage.getItem("token"); 
       axios
         .post("http://localhost:5000/upload", {
           image: imageSrc,
           exam_id: exam_id
-        }, {withCredentials: true})
+        }, {withCredentials: true,headers: {
+        // send it as a Bearer header so your Flask route can decode it
+        Authorization: `Bearer ${token}`,
+      },})
         .then((response) => {
           setDetectedObjects(response.data.objects || []);
           // console.log('Frame sent successfully', response.data);
@@ -28,7 +32,7 @@ const toastCooldown = 5000; // 5 seconds
           console.error("Error sending frame:", error);
         });
     }
-  }, [webcamRef]);
+  }, [webcamRef, exam_id]);
 
   useEffect(() => {
     if (!detectedObjects) return;
@@ -49,7 +53,7 @@ const toastCooldown = 5000; // 5 seconds
   
 
   useEffect(() => {
-    const interval = setInterval(sendFrameToBackend, 1000);
+    const interval = setInterval(sendFrameToBackend, 2000);
     return () => clearInterval(interval);
   }, [sendFrameToBackend]);
 
