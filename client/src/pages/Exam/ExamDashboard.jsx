@@ -46,17 +46,13 @@ const ExamDashboard = ({ examId }) => {
   return (
     <div className="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
       <div className="max-w-6xl mx-auto p-6">
-        {/* Header */}
         <div className="mb-8 bg-white rounded-lg shadow-sm p-6 border border-gray-200">
           <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">Exam Results</h1>
           <p className="text-gray-600 text-center">Detailed results for {examResult.examName}</p>
         </div>
 
-        {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Left Column - Exam Summary */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Exam Overview Card */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-lg font-medium text-gray-900">Exam Overview</h2>
@@ -97,7 +93,6 @@ const ExamDashboard = ({ examId }) => {
               </div>
             </div>
 
-            {/* Answers Section */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-lg font-medium text-gray-900">Your Answers</h2>
@@ -125,15 +120,12 @@ const ExamDashboard = ({ examId }) => {
             </div>
           </div>
 
-          {/* Right Column - Score & Audio */}
           <div className="space-y-6">
-            {/* Score Card */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-lg font-medium text-gray-900">Your Score</h2>
               </div>
               <div className="p-6">
-                {/* Main Score Display */}
                 <div className="text-center mb-6">
                   <div className="mb-3">
                     <span className={`text-5xl font-bold ${getScoreColor(examResult.score, examResult.maxScore)}`}>
@@ -146,7 +138,6 @@ const ExamDashboard = ({ examId }) => {
                   </div>
                 </div>
 
-                {/* Progress Bar */}
                 <div className="mb-6">
                   <div className="flex justify-between text-sm text-gray-600 mb-2">
                     <span>Progress</span>
@@ -167,7 +158,6 @@ const ExamDashboard = ({ examId }) => {
                 </div>
                 </div>
 
-            {/* Audio Recordings Card */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-lg font-medium text-gray-900">Audio Recordings</h2>

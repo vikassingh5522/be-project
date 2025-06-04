@@ -16,7 +16,7 @@ const ExamContainer = ({
     const handleCodeSubmissionFeedback = (status, message) => {
         alert(`${status === 'success' ? 'Success: ' : 'Error: '}${message}`);
         if (status === 'success') {
-            setShowCodeEditor(false); // Optionally hide editor on successful submission
+            setShowCodeEditor(false);
         }
     };
 
@@ -25,74 +25,81 @@ const ExamContainer = ({
     }
 
     return (
-        <div className="exam-container  bg-white rounded w-full">
-            
-            
+        <div className="card p-6">
+            <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-heading font-semibold text-gray-900">
+                        Question {currentQuestionIndex + 1} of {questions.length}
+                    </h2>
+                    <span className="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
+                        {currentQuestion.type || 'Multiple Choice'}
+                    </span>
+                </div>
+                <div className="prose max-w-none">
+                    <p className="text-gray-700 text-lg">{currentQuestion.question}</p>
+                </div>
+            </div>
 
-            <h2 className="text-xl font-semibold mb-4 bg-violet-100 p-4 rounded-md text-gray-800">
-                <h4 className='text-base'>General Knowledge</h4>
-                Question {currentQuestionIndex + 1}
-            </h2>
-            <p className="mb-4 font-bold">{currentQuestion.question}</p>
-            {currentQuestion.type === 'mcq' && (
-                <div className="options mb-6">
+            {currentQuestion.type === 'coding' ? (
+                <div className="space-y-4">
+                    <CodeEditor
+                        questionNumber={currentQuestionIndex}
+                        question={currentQuestion}
+                    />
+                </div>
+            ) : (
+                <div className="space-y-4">
                     {currentQuestion.options.map((option, index) => (
-                        <label key={index} className="block mb-2">
+                        <label
+                            key={index}
+                            className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                                selectedAnswers[currentQuestionIndex] === option
+                                    ? 'border-primary-500 bg-primary-50'
+                                    : 'border-gray-200 hover:border-primary-200'
+                            }`}
+                        >
                             <input
-                                className='accent-violet-500 bg-violet-400 p-2'
                                 type="radio"
                                 name={`question-${currentQuestionIndex}`}
                                 value={option}
                                 checked={selectedAnswers[currentQuestionIndex] === option}
                                 onChange={handleOptionChange}
-                            />{' '}
-                            {option}
+                                className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                            />
+                            <span className="ml-3 text-gray-700">{option}</span>
                         </label>
                     ))}
                 </div>
             )}
-            {currentQuestion.type === 'coding' && (
-                <>
-                    <button
-                        className="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-600 focus:outline-none focus:shadow-outline my-4"
-                        onClick={() => setShowCodeEditor(!showCodeEditor)}
-                    >
-                        Toggle Code Editor
-                    </button>
-                    {showCodeEditor && (
-                        <CodeEditor
-                            onSubmitCode={handleCodeSubmissionFeedback}
-                            questionNumber={currentQuestionIndex + 1} // Pass the correct question number
-                            question={questions[currentQuestionIndex].question}
-                        />
+
+            <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+                <button
+                    onClick={onPrevious}
+                    disabled={currentQuestionIndex === 0}
+                    className={`btn-secondary ${
+                        currentQuestionIndex === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                >
+                    Previous
+                </button>
+
+                <div className="flex items-center space-x-4">
+                    {currentQuestionIndex === questions.length - 1 ? (
+                        <button
+                            onClick={onSubmit}
+                            className="btn-primary bg-success-600 hover:bg-success-700"
+                        >
+                            Submit Exam
+                        </button>
+                    ) : (
+                        <button
+                            onClick={onNext}
+                            className="btn-primary"
+                        >
+                            Next
+                        </button>
                     )}
-                </>
-            )}
-            <div className="flex justify-between mt-4">
-                {currentQuestionIndex > 0 && (
-                    <button
-                        className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-                        onClick={onPrevious}
-                    >
-                        Previous
-                    </button>
-                )}
-                {currentQuestionIndex < questions.length - 1 && (
-                    <button
-                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                        onClick={onNext}
-                    >
-                        Next
-                    </button>
-                )}
-                {currentQuestionIndex === questions.length - 1 && (
-                    <button
-                        className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                        onClick={onSubmit}
-                    >
-                        Submit Exam
-                    </button>
-                )}
+                </div>
             </div>
         </div>
     );

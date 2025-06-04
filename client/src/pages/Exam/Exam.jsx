@@ -231,65 +231,95 @@ function Exam() {
     : "";
 
  return (
-  <div className="min-h-screen bg-gradient-to-br from-white-100 px-4 to-white-300 flex flex-col items-center justify-start py-10">
-    <h1 className="text-4xl font-bold text-gray-800 mb-6">Online Exam</h1>
-    {examStarted && (
-      <div className='flex gap-2 w-full px-4 '>
-      <div className='card rounded-md flex-auto bg-violet-100 flex flex-col p-4'>
-          <FaClock className=' animate-spin text-violet-600 ' />
-          <p className='text-gray-800 font-semibold text-xl'>Exam Information</p>
-        <Timer initialMinutes={examDuration} onTimeUp={handleTimeUp} />
-
-      </div>
-      <div className='card rounded-md flex-auto bg-violet-100 flex flex-col p-4'>
-          <FaShieldAlt className=' text-violet-600 ' />
-          <p className='text-gray-800 font-semibold text-lg'>Proctoring Status</p>
-          <p className='text-gray-500 font-semibold text-sm'>All System Active</p>
-
-      </div>
-      <div className='card rounded-md flex-auto bg-violet-100 flex flex-col p-4'>
-          <FaCheck className=' text-violet-600 ' />
-          <p className='text-gray-800 font-semibold text-xl'>Progress</p>
-          <p className='text-gray-500 font-semibold text-sm'>Question {currentQuestionIndex + 1} of {questions.length}</p>
-      </div>
-
-      <div className='card rounded-md flex-auto bg-violet-100 flex flex-col p-4'>
-          <FaMicrophone className=' text-violet-600 animate-pulse ' />
-          <p className='text-xl text-gray-800  font-semibold'>Audio Status</p>
-          <AudioRecorder ref={audioRecorderRef} examId={examId} token={examToken} />
-      </div>
-</div>
-    )
-    }
-
-    {error && <p className="text-red-500 mb-4">{error}</p>}
-
+  <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 p-6">
     {!examStarted ? (
-      <div className="bg-white rounded-2xl p-8 w-full max-w-3xl flex flex-col items-center">
-        <p className="text-lg text-gray-600 mb-2">Exam ID: <span className="font-medium text-gray-800">{examId}</span></p>
-        <p className="text-lg text-gray-600 mb-6">Exam Duration: <span className="font-medium text-gray-800">{examDuration} minutes</span></p>
+      <div className="card p-8 w-full max-w-3xl mx-auto flex flex-col items-center">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-heading font-bold text-gray-900 mb-4">Exam Ready</h1>
+          <p className="text-lg text-gray-600">Please review the exam details before starting</p>
+        </div>
+        
+        <div className="w-full space-y-4 mb-8">
+          <div className="flex items-center justify-between p-4 bg-primary-50 rounded-lg">
+            <span className="text-gray-600">Exam ID:</span>
+            <span className="font-medium text-gray-900">{examId}</span>
+          </div>
+          <div className="flex items-center justify-between p-4 bg-primary-50 rounded-lg">
+            <span className="text-gray-600">Duration:</span>
+            <span className="font-medium text-gray-900">{examDuration} minutes</span>
+          </div>
+        </div>
+
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-8 w-full">
+          <h3 className="text-yellow-800 font-medium mb-2">Important Instructions</h3>
+          <ul className="text-yellow-700 space-y-2">
+            <li className="flex items-center">
+              <FaShieldAlt className="mr-2" />
+              <span>Ensure your webcam is working properly</span>
+            </li>
+            <li className="flex items-center">
+              <FaClock className="mr-2" />
+              <span>Keep track of the time remaining</span>
+            </li>
+            <li className="flex items-center">
+              <FaCheck className="mr-2" />
+              <span>Review your answers before submission</span>
+            </li>
+          </ul>
+        </div>
+
         <StartExamButton onClick={startExam} />
       </div>
     ) : (
-      <div className="w-full rounded-2xl p-6 space-y-6">
+      <div className="w-full max-w-6xl mx-auto space-y-6">
         <Header exitCount={exitCount} />
-        <div className="flex justify-end">
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            {questions.length > 0 ? (
+              <ExamContainer
+                questions={questions}
+                currentQuestionIndex={currentQuestionIndex}
+                handleOptionChange={handleOptionChange}
+                selectedAnswers={selectedAnswers}
+                onNext={handleNext}
+                onPrevious={handlePrevious}
+                onSubmit={handleSubmit}
+              />
+            ) : (
+              <div className="card p-6 text-center">
+                <p className="text-error-600">No questions loaded. Please contact the administrator.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-6">
+            <div className="card p-4">
+              <Timer duration={examDuration} onTimeUp={handleTimeUp} />
+            </div>
+
+            <div className="card p-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Question Navigation</h3>
+              <div className="grid grid-cols-5 gap-2">
+                {questions.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentQuestionIndex(index)}
+                    className={`p-2 rounded-lg text-sm font-medium transition-colors ${
+                      currentQuestionIndex === index
+                        ? 'bg-primary-600 text-white'
+                        : selectedAnswers[index]
+                        ? 'bg-primary-100 text-primary-700'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
-        
-        
-        {questions.length > 0 ? (
-          <ExamContainer
-            questions={questions}
-            currentQuestionIndex={currentQuestionIndex}
-            handleOptionChange={handleOptionChange}
-            selectedAnswers={selectedAnswers}
-            onNext={handleNext}
-            onPrevious={handlePrevious}
-            onSubmit={handleSubmit}
-          />
-        ) : (
-          <p className="text-red-500 text-center">No questions loaded. Please contact the administrator.</p>
-        )}
       </div>
     )}
 

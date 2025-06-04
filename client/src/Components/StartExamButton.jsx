@@ -1,12 +1,14 @@
 // StartExamButton.js
 import React from 'react';
+import { Play } from 'lucide-react';
 
 const StartExamButton = ({ onClick }) => (
     <button
         onClick={onClick}
-        className="px-4 py-2 mb-4 bg-blue-600 text-white rounded hover:bg-blue-700"
+        className="btn-primary flex items-center space-x-2 px-8 py-3 text-lg"
     >
-      Attempt Exam
+        <Play className="h-5 w-5" />
+        <span>Start Exam</span>
     </button>
 );
 

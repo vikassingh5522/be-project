@@ -95,7 +95,7 @@ const JoinExam = () => {
   );
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
       <div className="max-w-4xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
