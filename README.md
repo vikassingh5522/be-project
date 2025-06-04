@@ -61,8 +61,14 @@ python app.py
 
 - ✅ Basic webcam integration
 - ✅ AI-powered monitoring
-- 🚧 Session management
-- 🚧 QR code feature
+- ✅ Session management
+- ✅ QR code feature
+- 🚧 Audio Diarization
 - 🚧 Network interruption handling
-- 🚧 WebSocket implementation
+
+
+## Database used 
+
+- COCO Dataset by Microsoft
+
 
