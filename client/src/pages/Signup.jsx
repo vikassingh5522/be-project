@@ -94,9 +94,50 @@ const Signup = () => {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                     />
+<<<<<<< HEAD
                     <div
                       onClick={() => setShowPassword(!showPassword)}
                       className="cursor-pointer flex items-center text-sm ml-2"
+=======
+                  </label>
+                  <label htmlFor="username" className="">
+                    Email
+                    <input
+                      type="email"
+                      placeholder="Enter Your Email"
+                      className="w-full p-2 mb-4 mt-2 border border-gray-300 rounded"
+                      value={email}
+                      onChange={(e)=>setEmail(e.target.value)}
+                      required
+                    />
+                  </label>
+                  <label htmlFor="username">
+                    Password
+                    <div className="wrapper p-2 mb-4  flex item-center border rounded border-gray-300">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter Password"
+                        className="w-full outline-none"
+                        value={password}
+                        onChange={(e)=>setPassword(e.target.value)}
+                        required
+                      />
+                      <div
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="cursor-pointer text-sm ml-2"
+                      >
+                      {showPassword ? <FaEye /> : <FaEyeSlash />}
+                      </div>
+                    </div>
+                  </label>
+                  {/* drop down to select Role */}
+                  <label htmlFor="role">
+                    Role
+                    <select
+                      className="w-full p-2 border border-gray-300 rounded"
+                      onChange={(e)=>setRole(e.target.value)}
+                      value={role}
+>>>>>>> 38bb7b8de545ffa5e837891b02cdaf21f9d5bc1d
                     >
                       {showPassword ? <FaEye /> : <FaEyeSlash />}
                     </div>

@@ -6,7 +6,11 @@ load_dotenv()
 class Config:
     USER1 = os.getenv('USER1')
     JWT_SECRET = os.getenv('JWT_SECRET')
-    
+    MAIL_SERVER="smtp.gmail.com"
+    MAIL_PORT=587
+    MAIL_USERNAME="atsalagare123@gmail.com"
+    MAIL_PASSWORD="yrox uoaw arau jnuy"
+
     # File upload configurations
     UPLOAD_FOLDER = 'assets/uploaded_files'
     FRAME_DIR = "assets/received_frames"
