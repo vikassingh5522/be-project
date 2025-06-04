@@ -66,36 +66,16 @@ const StudentSideBar = ({ collapsed, onToggle }) => {
           label: "Assigned Exams"
         },
         {
-          to: "/dashboard/exams/practice",
-          icon: Target,
-          label: "Practice Exams"
-        },
-        {
           to: "/dashboard/exams/attempted",
           icon: ClipboardList,
           label: "Attempted Exams"
-        }
-      ]
-    },
-    {
-      section: "Performance",
-      items: [
-        {
-          to: "/dashboard/results",
-          icon: TrendingUp,
-          label: "My Results"
-        },
-        {
-          to: "/dashboard/analytics",
-          icon: Bell,
-          label: "Notifications"
         }
       ]
     }
   ];
 
   return (
-    <div className={`fixed top-0 left-0 bottom-0 bg-white shadow-lg border-r border-gray-200 transition-all duration-300 ease-in-out z-40 ${collapsed ? 'w-16' : 'w-64'}`}>
+    <div className={`fixed top-0 left-0 bottom-0 bg-white shadow-lg border-r border-gray-200 transition-all duration-300 ease-in-out z-40 flex flex-col ${collapsed ? 'w-16' : 'w-64'}`}>
       {/* Toggle Button */}
       <button
         onClick={onToggle}
@@ -109,7 +89,7 @@ const StudentSideBar = ({ collapsed, onToggle }) => {
       </button>
 
       {/* Logo/Brand */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="flex-shrink-0 p-4 border-b border-gray-200">
         <div className="flex items-center space-x-3">
           <div className="flex-shrink-0">
             <GraduationCap className="h-8 w-8 text-blue-600" />
@@ -177,8 +157,8 @@ const StudentSideBar = ({ collapsed, onToggle }) => {
         ))}
       </div>
 
-      {/* Footer */}
-      <div className="border-t border-gray-200 p-3">
+      {/* Footer with Logout */}
+      <div className="flex-shrink-0 border-t border-gray-200 p-3 mt-auto">
         <LogoutButton collapsed={collapsed} />
       </div>
     </div>
@@ -216,58 +196,23 @@ const InstructorSidebar = ({ collapsed, onToggle }) => {
           to: "/dashboard/exams/active",
           icon: BookOpen,
           label: "Active Exams"
-        },
-        {
-          to: "/dashboard/exams/drafts",
-          icon: FileText,
-          label: "Draft Exams"
-        },
-        {
-          to: "/dashboard/exams/templates",
-          icon: ClipboardList,
-          label: "Templates"
         }
       ]
     },
     {
-      section: "Results & Analytics",
+      section: "Results",
       items: [
         {
           to: "/exam/result",
           icon: TrendingUp,
           label: "Exam Results"
-        },
-        {
-          to: "/dashboard/analytics",
-          icon: Target,
-          label: "Analytics"
-        },
-        {
-          to: "/dashboard/students",
-          icon: Users,
-          label: "Students"
-        }
-      ]
-    },
-    {
-      section: "Settings",
-      items: [
-        {
-          to: "/dashboard/notifications",
-          icon: Bell,
-          label: "Notifications"
-        },
-        {
-          to: "/dashboard/settings",
-          icon: Settings,
-          label: "Settings"
         }
       ]
     }
   ];
 
   return (
-    <div className={`fixed top-0 left-0 bottom-0 bg-white shadow-lg border-r border-gray-200 transition-all duration-300 ease-in-out z-40 ${collapsed ? 'w-16' : 'w-64'}`}>
+    <div className={`fixed top-0 left-0 bottom-0 bg-white shadow-lg border-r border-gray-200 transition-all duration-300 ease-in-out z-40 flex flex-col ${collapsed ? 'w-16' : 'w-64'}`}>
       {/* Toggle Button */}
       <button
         onClick={onToggle}
@@ -281,7 +226,7 @@ const InstructorSidebar = ({ collapsed, onToggle }) => {
       </button>
 
       {/* Logo/Brand */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="flex-shrink-0 p-4 border-b border-gray-200">
         <div className="flex items-center space-x-3">
           <div className="flex-shrink-0">
             <Shield className="h-8 w-8 text-blue-600" />
@@ -349,8 +294,8 @@ const InstructorSidebar = ({ collapsed, onToggle }) => {
         ))}
       </div>
 
-      {/* Footer */}
-      <div className="border-t border-gray-200 p-3">
+      {/* Footer with Logout */}
+      <div className="flex-shrink-0 border-t border-gray-200 p-3 mt-auto">
         <LogoutButton collapsed={collapsed} />
       </div>
     </div>
