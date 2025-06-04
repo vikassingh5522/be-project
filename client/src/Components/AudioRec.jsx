@@ -5,7 +5,7 @@ const AudioRecorder = forwardRef(({ examId, token }, ref) => {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]); // use a ref to store audio chunks
   const [recording, setRecording] = React.useState(false);
-
+  const BASE_URL = process.env.REACT_APP_BASE_URL;
   useEffect(() => {
     async function setupRecorder() {
       try {
@@ -67,7 +67,7 @@ const AudioRecorder = forwardRef(({ examId, token }, ref) => {
       formData.append("examId", examId);
       formData.append("token", token);
       try {
-        const response = await fetch("http://localhost:5000/upload/audio", {
+        const response = await fetch(`${BASE_URL}/upload/audio`, {
           method: "POST",
           body: formData,
         });

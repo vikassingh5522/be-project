@@ -5,11 +5,12 @@ import { useNavigate } from "react-router-dom";
 const ExamCardTeacher = ({ exam }) => {
   const [totalAttempts, setTotalAttempts] = useState(0);
   const navigate = useNavigate();
-
+  const BASE_URL = process.env.REACT_APP_BASE_URL;
+  
   useEffect(() => {
     async function fetchTotalAttempts() {
       try {
-        const res = await fetch(`http://localhost:5000/exam/attempts?examId=${exam.id}`);
+        const res = await fetch(`${BASE_URL}/exam/attempts?examId=${exam.id}`);
         const data = await res.json();
         if (data.success) {
           setTotalAttempts(data.attempts.length);

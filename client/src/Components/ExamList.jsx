@@ -3,12 +3,13 @@ import ExamCard from "./ExamCard";
 
 const ExamList = ({ role }) => {
   const [exams, setExams] = useState([]);
-
+  const BASE_URL = process.env.REACT_APP_BASE_URL;
+  
   useEffect(() => {
     const fetchExams = async () => {
       try {
         // This fetches active (assigned) exams
-        const response = await fetch("http://localhost:5000/exam/active");
+        const response = await fetch(`${BASE_URL}/exam/active`);
         const data = await response.json();
         if (data.success) {
           setExams(data.exams);

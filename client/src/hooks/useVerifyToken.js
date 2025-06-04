@@ -5,11 +5,12 @@ export const useVerifyToken = () => {
   // Initialize with undefined so we can differentiate between "not loaded" and "no user"
   const [user, setUser] = useState(undefined);
   const token = localStorage.getItem("token");
-
+  const BASE_URL = process.env.REACT_APP_BASE_URL;
+  
   const verifyToken = async () => {
     if (token) {
       try {
-        const response = await axios.get("http://localhost:5000/auth/verify", {
+        const response = await axios.get(`${BASE_URL}/auth/verify`, {
           headers: {
             "Authorization": "Bearer " + token,
           },

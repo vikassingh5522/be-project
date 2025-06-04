@@ -7,24 +7,25 @@ import {
   useParams,
 } from "react-router-dom";
 import { useVerifyToken } from "./hooks/useVerifyToken";
-import Home from "./pages/Home";
+import Home from "./pages//Home/Home";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
-import StudentDashboard from "./pages/StudentDashboard";
-import InstructorDashboard from "./pages/InstructorDashboard";
-import Exam from "./pages/Exam";
-import ExamCreation from "./pages/ExamCreation";
-import JoinExam from "./pages/JoinExam";
+import StudentDashboard from "./pages/StudentDashboard/StudentDashboard";
+import InstructorDashboard from "./pages/InstructorDashboard/InstructorDashboard";
+import Exam from "./pages/Exam/Exam";
+import ExamCreation from "./pages/Exam/ExamCreation";
+import JoinExam from "./pages/Exam/JoinExam";
 // Replace the original JoinExam import with ToggleableExamJoin for testing:
 //import ToggleableExamJoin from "./pages/ToggleableExamJoin";
-import ExamDashboard from "./pages/ExamDashboard";
+import ExamDashboard from "./pages/Exam/ExamDashboard";
 import ExamList from "./Components/ExamList";
-import AttemptedExams from "./pages/AttemptedExams";
-import CreatedExams from "./pages/CreatedExams"; // For instructor's created exams
-import ExamAttempts from "./pages/ExamAttempts"; // For instructor to view student attempts
-import ActiveExamsList from "./pages/ActiveExamsList"; // New active exams section
+import AttemptedExams from "./pages/Exam/AttemptedExams";
+import CreatedExams from "./pages/Exam/CreatedExams"; // For instructor's created exams
+import ExamAttempts from "./pages/Exam/ExamAttempts"; // For instructor to view student attempts
+import ActiveExamsList from "./pages/Exam/ActiveExamsList"; // New active exams section
 import Notification from "./pages/Notification";
 import {Toaster} from "react-hot-toast";
+import LoadingScreen from "./Components/Loading";
 
 // Wrapper to extract examId from URL parameters for ExamDashboard if needed.
 const ExamDashboardWrapper = () => {
@@ -37,7 +38,7 @@ function App() {
 
   // While token verification is in progress
   if (currentUser === undefined) {
-    return <div>Loading...</div>;
+    return <LoadingScreen />;
   }
 
   return (

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="5bfc1cb1-b860-4d78-a315-c0bbbb3a90a7" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/backend/.env" beforeDir="false" afterPath="$PROJECT_DIR$/backend/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/assets/uploaded_audio_fragments/22f0c35e-318b-42fc-a910-85a3b7155ae0_xyz_1744560641_recording.webm" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/assets/uploaded_audio_fragments/4e718b5a-86d6-4cf3-9ec0-8b0df3e375c4_xyz_1746696017_recording.webm" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/assets/uploaded_audio_fragments/4e718b5a-86d6-4cf3-9ec0-8b0df3e375c4_xyz_1746698491_recording.webm" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/assets/uploaded_audio_fragments/4e718b5a-86d6-4cf3-9ec0-8b0df3e375c4_xyz_1746766771_recording.webm" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/assets/uploaded_audio_fragments/4e718b5a-86d6-4cf3-9ec0-8b0df3e375c4_xyz_1746768228_recording.webm" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/assets/uploaded_audio_fragments/4e718b5a-86d6-4cf3-9ec0-8b0df3e375c4_xyz_1746769254_recording.webm" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/assets/uploaded_audio_fragments/5d91023c-e4d0-4d7d-a8da-a9406fb8a9ce_xyz_1744698886_recording.webm" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/assets/uploaded_audio_fragments/5d91023c-e4d0-4d7d-a8da-a9406fb8a9ce_xyz_1744700119_recording.webm" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/assets/uploaded_files/keylogs.txt" beforeDir="false" afterPath="$PROJECT_DIR$/backend/assets/uploaded_files/keylogs.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/exam/routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/exam/routes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/static/mobile_monitor.html" beforeDir="false" afterPath="$PROJECT_DIR$/backend/static/mobile_monitor.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/build/asset-manifest.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/build/favicon.ico" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/build/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/build/logo192.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/build/logo512.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/build/manifest.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/build/robots.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/build/static/css/main.aca879bc.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/build/static/css/main.aca879bc.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/build/static/js/453.72a9af34.chunk.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/build/static/js/453.72a9af34.chunk.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/build/static/js/main.6045c5d4.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/build/static/js/main.6045c5d4.js.LICENSE.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/build/static/js/main.6045c5d4.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/App.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/Components/AudioRec.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/Components/AudioRec.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/Components/CodeEditor.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/Components/CodeEditor.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/Components/ExamCardTeacher.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/Components/ExamCardTeacher.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/Components/ExamList.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/Components/ExamList.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/Components/SideBar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/Components/SideBar.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/Components/WebcamCapture.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/Components/WebcamCapture.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/hooks/useVerifyToken.js" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/hooks/useVerifyToken.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/ActiveExamDashboard.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/ActiveExamDashboard.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/ActiveExamsList.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/ActiveExamsList.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/AttemptedExams.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/AttemptedExams.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/CreatedExams.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/CreatedExams.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/Exam.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/Exam.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/ExamAttempts.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/ExamAttempts.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/ExamCreation.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/ExamCreation.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/ExamDashboard.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/ExamDashboard.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/Home.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/Home.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/JoinExam.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/JoinExam.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/Login.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/Login.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/Signup.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/Signup.jsx" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "customColor": "",
+  "associatedIndex": 3
+}]]></component>
+  <component name="ProjectId" id="2xLGWEWC36tRTfdKr3ZLRoCouXO" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "dart.analysis.tool.window.visible": "false",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "ts.external.directory.path": "C:\\Program Files\\JetBrains\\IntelliJ IDEA 2025.1\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-fbdcb00ec9e3-intellij.indexing.shared.core-IU-251.23774.435" />
+        <option value="bundled-js-predefined-d6986cc7102b-f27c65a3e318-JavaScript-IU-251.23774.435" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="5bfc1cb1-b860-4d78-a315-c0bbbb3a90a7" name="Changes" comment="" />
+      <created>1747709970849</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1747709970849</updated>
+      <workItem from="1747709972694" duration="1687000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>

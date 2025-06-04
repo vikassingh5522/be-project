@@ -124,7 +124,7 @@ def exam_created():
 
 
 @exam_bp.route('/attempts', methods=['GET'])
-@cross_origin(origins=["http://localhost:3000"], supports_credentials=True)
+@cross_origin(origins=[""], supports_credentials=True)
 def exam_attempts():
     # 1) grab the camelCase param
     exam_id = request.args.get("examId")

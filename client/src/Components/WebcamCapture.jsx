@@ -7,17 +7,16 @@ import toast from "react-hot-toast";
 const WebcamCapture = ({exam_id}) => {
   const webcamRef = useRef(null);
   const [lastToastTime, setLastToastTime] = useState(0);
-const toastCooldown = 5000; // 5 seconds
-
-
+  const toastCooldown = 5000; // 5 seconds
   const [detectedObjects, setDetectedObjects] = useState([]);
-
+  const BASE_URL = process.env.REACT_APP_BASE_URL;
+  
   const sendFrameToBackend = useCallback(() => {
     const imageSrc = webcamRef.current.getScreenshot();
     if (imageSrc) {
       const token = localStorage.getItem("token"); 
       axios
-        .post("http://localhost:5000/upload", {
+        .post(`${BASE_URL}/upload`, {
           image: imageSrc,
           exam_id: exam_id
         }, {withCredentials: true,headers: {

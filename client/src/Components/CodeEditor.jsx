@@ -13,6 +13,7 @@ const CodeEditor = ({ questionNumber, question }) => {
     const [language, setLanguage] = useState('python');
     const [theme, setTheme] = useState('monokai');
     const [notification, setNotification] = useState(null);
+    const BASE_URL = process.env.REACT_APP_BASE_URL;
 
     // Language-to-theme mapping
     /*const languageThemes = {
@@ -43,7 +44,7 @@ const CodeEditor = ({ questionNumber, question }) => {
 
     const handleSubmit = async () => {
         try {
-            const response = await axios.post('http://localhost:5000/exam/submit-code', { code, language, question_number: questionNumber, question });
+            const response = await axios.post(`${BASE_URL}/exam/submit-code`, { code, language, question_number: questionNumber, question });
             if (response.status === 200) {
                 const evaluationResult = response.data.submission.evaluation;
                 setNotification({
