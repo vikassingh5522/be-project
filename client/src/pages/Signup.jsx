@@ -61,7 +61,7 @@ const Signup = () => {
                     Email
                     <input
                       type="email"
-                      placeholder="Enter username"
+                      placeholder="Enter Your Email"
                       className="w-full p-2 mb-4 mt-2 border border-gray-300 rounded"
                       value={email}
                       onChange={(e)=>setEmail(e.target.value)}
@@ -73,7 +73,7 @@ const Signup = () => {
                     <div className="wrapper p-2 mb-4  flex item-center border rounded border-gray-300">
                       <input
                         type={showPassword ? "text" : "password"}
-                        placeholder="Enter username"
+                        placeholder="Enter Password"
                         className="w-full outline-none"
                         value={password}
                         onChange={(e)=>setPassword(e.target.value)}

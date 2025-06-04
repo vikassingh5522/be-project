@@ -1,10 +1,9 @@
 from flask import Blueprint, request, jsonify
-from exam.utils import parse_questions
+from exam.utils import parse_questions, parse_student_excel
 from database import init_db
+from flask import current_app
 from config import Config
-import uuid
 from flask_cors import cross_origin
-import os
 from code_eval.evaluation import evaluate_code_with_gemini
 import datetime
 from datetime import timezone
@@ -12,7 +11,9 @@ from database import init_db
 from werkzeug.utils import secure_filename
 from upload.utils import allowed_file
 from dateutil import parser
-import jwt
+from werkzeug.utils import secure_filename
+import os, uuid, jwt
+from flask_mail import Mail, Message
 
 db_data = init_db()
 db = db_data['db']
@@ -20,14 +21,20 @@ db_exams = db_data['db_exams']
 db_collection = db_data['db_collection']
 db_frames = db_data['frames']
 exam_bp = Blueprint('exam', __name__)
+#mail= Mail(current_app)
 
+ALLOWED_EXCEL_EXTENSIONS = {'.xlsx', '.xls'}
+def allowed_excel_file(filename):
+    """Check if the uploaded file has an allowed extension for Excel student data."""
+    ext = os.path.splitext(filename)[1].lower()
+    return ext in ALLOWED_EXCEL_EXTENSIONS
 @exam_bp.route('/active', methods=['GET'])
 def exam_active():
-    import datetime
+    username = request.args.get("username")
     try:
         now = datetime.datetime.now(datetime.timezone.utc)
         active_exams = []
-        exams_cursor = db_exams.find({})
+        exams_cursor = db_exams.find({"invited": username})
         for exam in exams_cursor:
             active_start = exam.get("active_start")
             active_end = exam.get("active_end")
@@ -53,64 +60,96 @@ def exam_active():
 @exam_bp.route('/create', methods=['POST'])
 def createExam():
     uid = str(uuid.uuid4())
-    print(uid)
+
+    # 1) Validate uploads
+    if 'file' not in request.files:
+        return jsonify(success=False, message="No exam file part in the request"), 400
+    if 'studentData' not in request.files:
+        return jsonify(success=False, message="No Excel file for student data provided."), 400
+
+    exam_file   = request.files['file']
+    excel_file  = request.files['studentData']
+
+    # 2) Validate filenames & extensions
+    if not exam_file.filename or not allowed_file(exam_file.filename):
+        return jsonify(success=False, message="Valid exam file (.txt/.docx) required"), 400
+    if not excel_file.filename or not allowed_excel_file(excel_file.filename):
+        return jsonify(success=False, message="Valid student Excel (.xlsx/.xls) required"), 400
+
+    # 3) Read form fields
+    exam_name    = request.form.get('name')
+    exam_duration= request.form.get('duration')
+    exam_date    = request.form.get('date')
+    active_start = request.form.get('active_start')
+    active_end   = request.form.get('active_end')
+    if not all([exam_name, exam_duration, exam_date, active_start, active_end]):
+        return jsonify(success=False, message="Missing one of name/duration/date/active_start/active_end"), 400
+
+    # 4) Authenticate instructor
+    auth = request.headers.get("Authorization", "")
     try:
-        # Check if file is provided
-        if 'file' not in request.files:
-            return jsonify({"success": False, "message": "No file part in the request"}), 400
+        token     = auth.split()[1]
+        secret    = os.getenv("JWT_SECRET")
+        instructor= jwt.decode(token, secret, algorithms=["HS256"])["username"]
+    except Exception:
+        return jsonify(success=False, message="Invalid or missing Authorization token"), 401
 
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({"success": False, "message": "No file selected"}), 400
+    # 5) Save uploads to disk
+    updir = Config.UPLOAD_FOLDER
+    if not os.path.exists(updir):
+        os.makedirs(updir)
+    exam_path   = os.path.join(updir, secure_filename(exam_file.filename))
+    excel_path  = os.path.join(updir, secure_filename(excel_file.filename))
+    exam_file.save(exam_path)
+    excel_file.save(excel_path)
 
-        if not allowed_file(file.filename):
-            return jsonify({"success": False, "message": "Unsupported file type. Only .txt and .docx are allowed."}), 400
+    # 6) Parse questions & students
+    qres     = parse_questions(exam_path, exam_file.filename)
+    questions = qres.get("questions")
+    if not questions:
+        return jsonify(success=False, message="No valid questions found"), 400
 
-        # Retrieve exam details from form data
-        exam_name = request.form.get('name')
-        exam_duration = request.form.get('duration')
-        exam_date = request.form.get('date')
-        if not exam_name or not exam_duration or not exam_date:
-            return jsonify({"success": False, "message": "Missing exam details (name, duration, date)."}), 400
+    students = parse_student_excel(excel_path)
+    invited  = [ s.get("username") for s in students if s.get("username") ]
 
-        # Get the instructor name from the Authorization header token
-        auth_header = request.headers.get("Authorization")
-        if not auth_header:
-            return jsonify({"success": False, "message": "Authorization header missing"}), 401
+    # 7) Build & insert exam document (with invited list)
+    exam_doc = {
+        "instructor":  instructor,
+        "id":          uid,
+        "name":        exam_name,
+        "duration":    exam_duration,
+        "date":        exam_date,
+        "active_start":active_start,
+        "active_end":  active_end,
+        "questions":   questions,
+        "maxScore":    qres.get("maxScore"),
+        "invited":     invited,            # ← so only these users can later fetch it
+    }
+    db_exams.insert_one(exam_doc)
 
-        token = auth_header.split(" ")[1]
-        JWT_SECRET = os.getenv("JWT_SECRET")
-        decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-        instructor = decoded.get("username")
-        if not instructor:
-            return jsonify({"success": False, "message": "Instructor information missing in token"}), 401
 
-        # Save the uploaded file
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(Config.UPLOAD_FOLDER, filename)
-        file.save(filepath)
+    # # 8) Send notification emails
+    # for s in students:
+    #     try:
+    #         msg = Message(
+    #             subject = f"Exam Invitation: {exam_name}",
+    #             sender  = Config.MAIL_USERNAME,
+    #             recipients=[s["email"]]
+    #         )
+    #         msg.body = (
+    #             f"Hi {s['name']},\n\n"
+    #             f"You’re invited to the exam “{exam_name}”.\n"
+    #             f"ID: {uid}\n"
+    #             f"Duration: {exam_duration} mins\n"
+    #             f"Opens: {active_start}\n"
+    #             f"Closes: {active_end}\n\n"
+    #             "Good luck!"
+    #         )
+    #         mail.send(msg)
+    #     except Exception as err:
+    #         current_app.logger.error(f"Email to {s['email']} failed: {err}")
 
-        # Parse questions from the file
-        questions_result = parse_questions(filepath, filename)
-        questions = questions_result.get("questions")
-        if not questions:
-            return jsonify({"success": False, "message": "No valid questions found in the file."}), 400
-
-        exam_doc = {
-            "instructor": instructor,   # <--- Instructor's username stored here.
-            "id": uid,
-            "name": exam_name,
-            "duration": exam_duration,
-            "date": exam_date,
-            "questions": questions,
-            "maxScore": questions_result.get("maxScore")
-        }
-        db_exams.insert_one(exam_doc)
-        return jsonify({"success": True, "examId": uid}), 200
-    except Exception as e:
-        print(e)
-        return jsonify({"success": False, "message": f"Error processing file: {str(e)}"}), 500
-
+    return jsonify(success=True, examId=uid), 200
 @exam_bp.route('/created', methods=['GET'])
 def exam_created():
     instructor = request.args.get("instructor")
@@ -122,7 +161,26 @@ def exam_created():
         exam["_id"] = str(exam["_id"])
     return jsonify({"success": True, "exams": exams}), 200
 
-
+@exam_bp.route('/assigned', methods=['GET'])
+def exam_assigned():
+    username = request.args.get("username")
+    if not username:
+        return jsonify({"success": False, "message": "Missing username"}), 400
+    try:
+        # Get all exams from the exams collection
+        exams_cursor = db_exams.find({"invited": username})
+        exams = list(exams_cursor)
+        # Get the list of exams the student has attempted.
+        attempts_cursor = db_collection.find({"username": username})
+        attempted_ids = {attempt.get("examId") for attempt in attempts_cursor}
+        # Filter out exams that have been attempted.
+        unattempted_exams = [exam for exam in exams if exam.get("id") not in attempted_ids]
+        # Convert ObjectId to string
+        for exam in unattempted_exams:
+            exam["_id"] = str(exam["_id"])
+        return jsonify({"success": True, "exams": unattempted_exams}), 200
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
 @exam_bp.route('/attempts', methods=['GET'])
 @cross_origin(origins=["http://localhost:3000"], supports_credentials=True)
 def exam_attempts():

@@ -9,10 +9,13 @@ from upload.routes import upload_bp
 from database import init_db
 import config
 import os
+from flask_mail import Mail
 
 def create_app(config_class=config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+    Mmail = Mail()
+    Mmail.init_app(app)
     
     CORS(app,supports_credentials=True, resources={r"/*": {"origins": "*"}, })
     

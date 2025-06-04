@@ -3,12 +3,13 @@ import ExamCard from "./ExamCard";
 
 const ExamList = ({ role }) => {
   const [exams, setExams] = useState([]);
-
+  const username = localStorage.getItem("username");
+  const fetchUrl = `http://localhost:5000/exam/assigned?username=${encodeURIComponent(username)}`;
   useEffect(() => {
     const fetchExams = async () => {
       try {
         // This fetches active (assigned) exams
-        const response = await fetch("http://localhost:5000/exam/active");
+        const response = await fetch(fetchUrl);
         const data = await response.json();
         if (data.success) {
           setExams(data.exams);
@@ -20,8 +21,8 @@ const ExamList = ({ role }) => {
       }
     };
 
-    fetchExams();
-  }, []);
+    if (username) fetchExams();
+  }, [fetchUrl, username]);
 
   return (
     <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
