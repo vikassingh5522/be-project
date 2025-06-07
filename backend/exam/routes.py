@@ -14,6 +14,8 @@ from dateutil import parser
 from werkzeug.utils import secure_filename
 import os, uuid, jwt
 from flask_mail import Mail, Message
+from bson.objectid import ObjectId
+from exam.cheating_analysis import get_cheating_analysis
 
 db_data = init_db()
 db = db_data['db']
@@ -56,6 +58,37 @@ def exam_active():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
+
+def send_exam_notification(recipient_email, subject, template_data):
+    try:
+        msg = Message(
+            subject=subject,
+            sender=Config.MAIL_USERNAME,
+            recipients=[recipient_email]
+        )
+        
+        # Create HTML email template
+        html_content = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #2c3e50;">{template_data.get('title', '')}</h2>
+                    <p>{template_data.get('message', '')}</p>
+                    {template_data.get('details', '')}
+                    <div style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+                        <p style="margin: 0;">Best regards,<br>Exam System Team</p>
+                    </div>
+                </div>
+            </body>
+        </html>
+        """
+        
+        msg.html = html_content
+        mail.send(msg)
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
 
 @exam_bp.route('/create', methods=['POST'])
 def createExam():
@@ -127,27 +160,23 @@ def createExam():
     }
     db_exams.insert_one(exam_doc)
 
-
-    # # 8) Send notification emails
-    # for s in students:
-    #     try:
-    #         msg = Message(
-    #             subject = f"Exam Invitation: {exam_name}",
-    #             sender  = Config.MAIL_USERNAME,
-    #             recipients=[s["email"]]
-    #         )
-    #         msg.body = (
-    #             f"Hi {s['name']},\n\n"
-    #             f"You’re invited to the exam “{exam_name}”.\n"
-    #             f"ID: {uid}\n"
-    #             f"Duration: {exam_duration} mins\n"
-    #             f"Opens: {active_start}\n"
-    #             f"Closes: {active_end}\n\n"
-    #             "Good luck!"
-    #         )
-    #         mail.send(msg)
-    #     except Exception as err:
-    #         current_app.logger.error(f"Email to {s['email']} failed: {err}")
+    # 8) Send notification emails to invited students
+    for student in students:
+        if student.get("email"):
+            template_data = {
+                "title": f"New Exam: {exam_name}",
+                "message": f"Hi {student['name']}, you have been invited to take an exam.",
+                "details": f"""
+                <ul style="list-style: none; padding: 0;">
+                    <li><strong>Exam Name:</strong> {exam_name}</li>
+                    <li><strong>Duration:</strong> {exam_duration} minutes</li>
+                    <li><strong>Date:</strong> {exam_date}</li>
+                    <li><strong>Start Time:</strong> {active_start}</li>
+                    <li><strong>End Time:</strong> {active_end}</li>
+                </ul>
+                """
+            }
+            send_exam_notification(student["email"], f"Exam Invitation: {exam_name}", template_data)
 
     return jsonify(success=True, examId=uid), 200
 @exam_bp.route('/created', methods=['GET'])
@@ -167,19 +196,17 @@ def exam_assigned():
     if not username:
         return jsonify({"success": False, "message": "Missing username"}), 400
     try:
-        # Get all exams from the exams collection
+        # Get all exams from the exams collection where the student is invited
         exams_cursor = db_exams.find({"invited": username})
         exams = list(exams_cursor)
-        # Get the list of exams the student has attempted.
-        attempts_cursor = db_collection.find({"username": username})
-        attempted_ids = {attempt.get("examId") for attempt in attempts_cursor}
-        # Filter out exams that have been attempted.
-        unattempted_exams = [exam for exam in exams if exam.get("id") not in attempted_ids]
-        # Convert ObjectId to string
-        for exam in unattempted_exams:
+        
+        # Convert ObjectId to string for each exam
+        for exam in exams:
             exam["_id"] = str(exam["_id"])
-        return jsonify({"success": True, "exams": unattempted_exams}), 200
+                
+        return jsonify({"success": True, "exams": exams}), 200
     except Exception as e:
+        print("Error in /exam/assigned:", e)
         return jsonify({"success": False, "message": str(e)}), 500
 @exam_bp.route('/attempts', methods=['GET'])
 @cross_origin(origins=[""], supports_credentials=True)
@@ -233,6 +260,8 @@ def exam_submit():
     exam_start_time = data.get("examStartTime")
     user_answers = data.get("answers")
     abnormal_audios = data.get("abnormalAudios", [])
+    code_submissions = data.get("codeSubmissions", {})
+    cursor_warning_count = data.get("cursorWarningCount", 0)  # Get cursor warning count
 
     if not exam_id or not username or not exam_start_time or user_answers is None:
         return jsonify({"success": False, "message": "Missing examId, username, examStartTime, or answers"}), 400
@@ -245,27 +274,119 @@ def exam_submit():
     if not exam_doc: 
         return jsonify({"success": False, "message": "Exam not found"}), 404
 
+    # Calculate cheating score
+    cheating_score = 0
+    cheating_factors = {
+        "cursor_warnings": 0,
+        "suspicious_frames": 0,
+        "abnormal_audio": 0,
+        "tab_switches": 0
+    }
+
+    # Get suspicious frames count
+    frames_cursor = db_frames.find({
+        "exam_id": exam_id,
+        "username": username
+    })
+    suspicious_frames = [f for f in frames_cursor if f.get("objects", [])]
+    cheating_factors["suspicious_frames"] = len(suspicious_frames)
+
+    # Calculate cursor warning impact
+    cheating_factors["cursor_warnings"] = cursor_warning_count
+    if cursor_warning_count > 10:
+        cheating_score += 20
+    elif cursor_warning_count > 5:
+        cheating_score += 10
+    elif cursor_warning_count > 0:
+        cheating_score += 5
+
+    # Calculate suspicious frames impact
+    if len(suspicious_frames) > 5:
+        cheating_score += 30
+    elif len(suspicious_frames) > 2:
+        cheating_score += 15
+    elif len(suspicious_frames) > 0:
+        cheating_score += 5
+
+    # Calculate abnormal audio impact
+    cheating_factors["abnormal_audio"] = len(abnormal_audios)
+    if len(abnormal_audios) > 3:
+        cheating_score += 25
+    elif len(abnormal_audios) > 1:
+        cheating_score += 10
+    elif len(abnormal_audios) > 0:
+        cheating_score += 5
+
+    # Get tab switch count from mobile logs
+    mobile_logs = db["mobile_activity_logs"].find({
+        "examId": exam_id,
+        "username": username,
+        "event": "visibilitychange"
+    })
+    tab_switches = len(list(mobile_logs))
+    cheating_factors["tab_switches"] = tab_switches
+    if tab_switches > 5:
+        cheating_score += 25
+    elif tab_switches > 2:
+        cheating_score += 15
+    elif tab_switches > 0:
+        cheating_score += 5
+
+    # Cap the cheating score at 100
+    cheating_score = min(cheating_score, 100)
+
     exam_details = exam_doc
     questions = exam_details.get("questions", [])
     computed_score = 0
+    detailed_scores = []
+
     for idx, question in enumerate(questions):
+        question_score = 0
         if question.get("type") == "mcq":
             correct = question.get("correctAnswer", "").lower().strip() if question.get("correctAnswer") else ""
             user_ans = (user_answers.get(str(idx)) or "").lower().strip()
             if user_ans and user_ans[0] == correct and correct != "":
-                computed_score += question.get("score", 2)
+                question_score = question.get("score", 2)
+                computed_score += question_score
+        elif question.get("type") == "coding":
+            code_submission = code_submissions.get(str(idx))
+            if code_submission:
+                submission_doc = {
+                    "examId": exam_id,
+                    "username": username,
+                    "questionId": idx,
+                    "code": code_submission,
+                    "timestamp": datetime.datetime.now(datetime.timezone.utc),
+                    "status": "pending"
+                }
+                db["code_submissions"].insert_one(submission_doc)
+                question_score = question.get("score", 5) * 0.5
+                computed_score += question_score
+
+        detailed_scores.append({
+            "questionId": idx,
+            "type": question.get("type"),
+            "score": question_score,
+            "maxScore": question.get("score", 2 if question.get("type") == "mcq" else 5)
+        })
 
     submitted_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
     update_data = {
         "examStartTime": exam_start_time,
         "answers": user_answers,
+        "codeSubmissions": code_submissions,
         "score": computed_score,
+        "detailedScores": detailed_scores,
         "abnormalAudios": abnormal_audios,
         "submittedAt": submitted_at,
         "examName": exam_details.get("name"),
         "examDuration": exam_details.get("duration"),
         "examDate": exam_details.get("date"),
-        "maxScore": exam_details.get("maxScore")
+        "maxScore": exam_details.get("maxScore"),
+        "status": "submitted",
+        "cursorWarningCount": cursor_warning_count,
+        "cheatingScore": cheating_score,
+        "cheatingFactors": cheating_factors
     }
 
     existing_attempt = db_collection.find_one({"examId": exam_id, "username": username})
@@ -277,6 +398,39 @@ def exam_submit():
             updated_attempt["submittedAt"] = updated_attempt["submittedAt"].isoformat()
         if "startedAt" in updated_attempt and isinstance(updated_attempt["startedAt"], datetime.datetime):
             updated_attempt["startedAt"] = updated_attempt["startedAt"].isoformat()
+
+        # Send submission confirmation email
+        user_email = db["users"].find_one({"username": username}).get("email")
+        if user_email:
+            template_data = {
+                "title": f"Exam Submission Confirmation: {exam_details.get('name')}",
+                "message": f"Hi {username}, your exam submission has been received.",
+                "details": f"""
+                <ul style="list-style: none; padding: 0;">
+                    <li><strong>Exam:</strong> {exam_details.get('name')}</li>
+                    <li><strong>Score:</strong> {computed_score}/{exam_details.get('maxScore')}</li>
+                    <li><strong>Submission Time:</strong> {submitted_at}</li>
+                </ul>
+                """
+            }
+            send_exam_notification(user_email, f"Exam Submission Confirmation: {exam_details.get('name')}", template_data)
+
+        # Send notification to instructor
+        instructor_email = db["users"].find_one({"username": exam_details.get("instructor")}).get("email")
+        if instructor_email:
+            template_data = {
+                "title": f"New Exam Submission: {exam_details.get('name')}",
+                "message": f"A student has submitted their exam.",
+                "details": f"""
+                <ul style="list-style: none; padding: 0;">
+                    <li><strong>Student:</strong> {username}</li>
+                    <li><strong>Exam:</strong> {exam_details.get('name')}</li>
+                    <li><strong>Submission Time:</strong> {submitted_at}</li>
+                </ul>
+                """
+            }
+            send_exam_notification(instructor_email, f"New Exam Submission: {exam_details.get('name')}", template_data)
+
         return jsonify({"success": True, "attempt": updated_attempt}), 200
     else:
         new_attempt = {
@@ -287,6 +441,39 @@ def exam_submit():
         insert_result = db_collection.insert_one(new_attempt)
         new_attempt["_id"] = str(insert_result.inserted_id)
         new_attempt["submittedAt"] = new_attempt["submittedAt"].isoformat()
+
+        # Send submission confirmation email
+        user_email = db["users"].find_one({"username": username}).get("email")
+        if user_email:
+            template_data = {
+                "title": f"Exam Submission Confirmation: {exam_details.get('name')}",
+                "message": f"Hi {username}, your exam submission has been received.",
+                "details": f"""
+                <ul style="list-style: none; padding: 0;">
+                    <li><strong>Exam:</strong> {exam_details.get('name')}</li>
+                    <li><strong>Score:</strong> {computed_score}/{exam_details.get('maxScore')}</li>
+                    <li><strong>Submission Time:</strong> {submitted_at}</li>
+                </ul>
+                """
+            }
+            send_exam_notification(user_email, f"Exam Submission Confirmation: {exam_details.get('name')}", template_data)
+
+        # Send notification to instructor
+        instructor_email = db["users"].find_one({"username": exam_details.get("instructor")}).get("email")
+        if instructor_email:
+            template_data = {
+                "title": f"New Exam Submission: {exam_details.get('name')}",
+                "message": f"A student has submitted their exam.",
+                "details": f"""
+                <ul style="list-style: none; padding: 0;">
+                    <li><strong>Student:</strong> {username}</li>
+                    <li><strong>Exam:</strong> {exam_details.get('name')}</li>
+                    <li><strong>Submission Time:</strong> {submitted_at}</li>
+                </ul>
+                """
+            }
+            send_exam_notification(instructor_email, f"New Exam Submission: {exam_details.get('name')}", template_data)
+
         return jsonify({"success": True, "attempt": new_attempt}), 200
 
 @exam_bp.route('/submit-code', methods=['POST'])
@@ -335,11 +522,17 @@ def exam_attempted():
         if not username:
             return jsonify({"success": False, "message": "Missing username"}), 400
 
+        # Get all attempts for this user
         attempts = list(db_collection.find({"username": username}))
+        
+        # Convert ObjectId to string and format dates
         for attempt in attempts:
             attempt["_id"] = str(attempt["_id"])
             if "submittedAt" in attempt and isinstance(attempt["submittedAt"], datetime.datetime):
                 attempt["submittedAt"] = attempt["submittedAt"].isoformat()
+            if "startedAt" in attempt and isinstance(attempt["startedAt"], datetime.datetime):
+                attempt["startedAt"] = attempt["startedAt"].isoformat()
+                
         return jsonify({"success": True, "attemptedExams": attempts}), 200
     except Exception as e:
         print("Error in /exam/attempted:", e)
@@ -428,4 +621,107 @@ def exam_result():
         return jsonify({"success": True, "result": attempt}), 200
     else:
         return jsonify({"success": False, "message": "Exam attempt not found"}), 404
+
+@exam_bp.route('/upload-audio', methods=['POST'])
+def upload_audio():
+    try:
+        if 'audio' not in request.files:
+            return jsonify({"success": False, "message": "No audio file provided"}), 400
+            
+        audio_file = request.files['audio']
+        exam_id = request.form.get('examId')
+        username = request.form.get('username')
+        timestamp = request.form.get('timestamp')
+        
+        if not all([audio_file, exam_id, username, timestamp]):
+            return jsonify({"success": False, "message": "Missing required fields"}), 400
+            
+        # Create a unique filename
+        filename = f"{exam_id}_{username}_{timestamp}.wav"
+        filepath = os.path.join(Config.AUDIO_UPLOAD_FOLDER, filename)
+        
+        # Save the audio file
+        audio_file.save(filepath)
+        
+        # Store the audio metadata in the database
+        audio_doc = {
+            "examId": exam_id,
+            "username": username,
+            "timestamp": datetime.datetime.fromisoformat(timestamp),
+            "filepath": filepath,
+            "status": "pending_analysis"
+        }
+        db["audio_logs"].insert_one(audio_doc)
+        
+        return jsonify({
+            "success": True,
+            "message": "Audio uploaded successfully",
+            "audioId": str(audio_doc["_id"])
+        }), 200
+        
+    except Exception as e:
+        print("Error in /upload-audio:", e)
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@exam_bp.route('/analyze-audio', methods=['POST'])
+def analyze_audio():
+    try:
+        data = request.get_json()
+        audio_id = data.get('audioId')
+        
+        if not audio_id:
+            return jsonify({"success": False, "message": "Missing audioId"}), 400
+            
+        # Get the audio document
+        audio_doc = db["audio_logs"].find_one({"_id": ObjectId(audio_id)})
+        if not audio_doc:
+            return jsonify({"success": False, "message": "Audio not found"}), 404
+            
+        # Perform audio analysis (implement your analysis logic here)
+        # For now, we'll just mark it as analyzed
+        analysis_result = {
+            "status": "analyzed",
+            "hasVoice": True,  # Replace with actual analysis
+            "confidence": 0.95  # Replace with actual confidence score
+        }
+        
+        # Update the audio document with analysis results
+        db["audio_logs"].update_one(
+            {"_id": ObjectId(audio_id)},
+            {"$set": {
+                "status": "analyzed",
+                "analysis": analysis_result
+            }}
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": "Audio analyzed successfully",
+            "analysis": analysis_result
+        }), 200
+        
+    except Exception as e:
+        print("Error in /analyze-audio:", e)
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@exam_bp.route('/cheating-analysis', methods=['GET'])
+def get_exam_cheating_analysis():
+    """
+    Get cheating analysis for a specific exam attempt
+    """
+    exam_id = request.args.get('examId')
+    username = request.args.get('username')
+    
+    if not exam_id or not username:
+        return jsonify({
+            'success': False,
+            'message': 'Missing examId or username'
+        }), 400
+        
+    analysis_result = get_cheating_analysis(exam_id, username, db)
+    
+    if not analysis_result['success']:
+        return jsonify(analysis_result), 404
+        
+    return jsonify(analysis_result), 200
 

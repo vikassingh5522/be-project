@@ -239,16 +239,16 @@ function Exam() {
 
     let warningTimeout;
     const handleMouseMove = (e) => {
-      if (!examContainerRef.current) return;
-
-      const container = examContainerRef.current;
-      const rect = container.getBoundingClientRect();
+      // Get the viewport dimensions
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
       
+      // Check if cursor is outside the viewport
       if (
-        e.clientX < rect.left ||
-        e.clientX > rect.right ||
-        e.clientY < rect.top ||
-        e.clientY > rect.bottom
+        e.clientY < 0 || // Above viewport
+        e.clientY > viewportHeight || // Below viewport
+        e.clientX < 0 || // Left of viewport
+        e.clientX > viewportWidth // Right of viewport
       ) {
         setCursorWarning(true);
         clearTimeout(warningTimeout);
@@ -322,7 +322,7 @@ function Exam() {
         )}
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2" ref={examContainerRef}>
+          <div className="lg:col-span-2">
             {questions.length > 0 ? (
               <ExamContainer
                 questions={questions}

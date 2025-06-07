@@ -38,20 +38,19 @@ const useExamSecurity = (examStarted) => {
 
     // Monitor cursor position
     const handleMouseMove = (e) => {
-      if (!examContainerRef.current) return;
-
-      const container = examContainerRef.current;
-      const rect = container.getBoundingClientRect();
+      // Get the viewport height (excluding browser UI)
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
       
-      // Check if cursor is outside the exam container
+      // Check if cursor is outside the viewport (below address bar)
       if (
-        e.clientX < rect.left ||
-        e.clientX > rect.right ||
-        e.clientY < rect.top ||
-        e.clientY > rect.bottom
+        e.clientY < 0 || // Above viewport
+        e.clientY > viewportHeight || // Below viewport
+        e.clientX < 0 || // Left of viewport
+        e.clientX > viewportWidth // Right of viewport
       ) {
         // You can implement your own warning system here
-        console.warn('Cursor moved outside exam window');
+        console.warn('Cursor moved outside browser window');
       }
     };
 

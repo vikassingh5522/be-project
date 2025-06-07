@@ -44,18 +44,64 @@ const CodeEditor = ({ questionNumber, question }) => {
 
     const handleSubmit = async () => {
         try {
-            const response = await axios.post(`${BASE_URL}/exam/submit-code`, { code, language, question_number: questionNumber, question });
+            // Clean the code before submission
+            const cleanedCode = code.trim();
+            if (!cleanedCode || cleanedCode === '# Start coding here...') {
+                setNotification({ 
+                    type: 'error', 
+                    message: 'Please write some code before submitting.' 
+                });
+                return;
+            }
+
+            // Validate question prop
+            if (!question || typeof question !== 'object' || !question.question) {
+                setNotification({ 
+                    type: 'error', 
+                    message: 'Invalid question format. Please refresh the page and try again.' 
+                });
+                return;
+            }
+
+            const response = await axios.post(`${BASE_URL}/exam/submit-code`, {
+                code: cleanedCode,
+                language,
+                question_number: questionNumber,
+                question: question.question.trim()
+            });
+
             if (response.status === 200) {
                 const evaluationResult = response.data.submission.evaluation;
+                let message = '';
+                let type = '';
+
+                if (evaluationResult === 'correct') {
+                    message = 'Great job! Your code is correct.';
+                    type = 'success';
+                } else if (evaluationResult === 'incorrect') {
+                    message = 'Your code needs some adjustments. Please review the requirements and try again.';
+                    type = 'warning';
+                } else {
+                    message = `Evaluation result: ${evaluationResult}`;
+                    type = 'error';
+                }
+
                 setNotification({
-                    type: evaluationResult === 'correct' ? 'success' : 'warning',
-                    message: `Code submitted successfully! Evaluation result: ${evaluationResult}`
+                    type,
+                    message
                 });
             } else {
-                setNotification({ type: 'error', message: 'Failed to submit code.' });
+                setNotification({ 
+                    type: 'error', 
+                    message: 'Failed to submit code. Please try again.' 
+                });
             }
         } catch (error) {
-            setNotification({ type: 'error', message: 'An error occurred while submitting the code.' });
+            console.error('Code submission error:', error);
+            setNotification({ 
+                type: 'error', 
+                message: error.response?.data?.error || 'An error occurred while submitting the code.' 
+            });
         } finally {
             setTimeout(() => setNotification(null), 5000);
         }

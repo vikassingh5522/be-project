@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
-const Timer = ({ initialMinutes, onTimeUp }) => {
-    const [timeLeft, setTimeLeft] = useState(initialMinutes * 60); // Convert minutes to seconds
+const Timer = ({ duration, onTimeUp }) => {
+    const [timeLeft, setTimeLeft] = useState(duration * 60); // Convert minutes to seconds
 
     useEffect(() => {
         if (timeLeft <= 0) {

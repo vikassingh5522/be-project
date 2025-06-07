@@ -6,10 +6,16 @@ load_dotenv()
 client = genai.Client(api_key=os.getenv("API_KEY"))
 
 def evaluate_code_with_gemini(question, code):
-    print("question:",question)
-    print("code:",code)
-    messages = [
-        {
+    print("question:", question)
+    print("code:", code)
+    
+    try:
+        # Clean the question text
+        question = question.strip()
+        code = code.strip()
+        
+        messages = [
+            {
             "role": "system",
             "content": '''You are an AI code evaluator. Given a task and a code snippet, your job is to determine whether the code correctly fulfills the task's intent.
 Respond with either:
@@ -27,44 +33,41 @@ Only respond with one word: `correct` or `incorrect`
         },
         {
             "role": "user",
-            "content": question + "\n\n" + code
-        },
-        {
-            "role": "assistant",
-            "content": ""
+                "content": f"Task: {question}\n\nCode:\n{code}"
         }
     ]
 
-    prompt = ""
-    for msg in messages:
-        if msg["role"] == "system":
-            prompt += f"<|system|>\n{msg['content']}\n"
-        elif msg["role"] == "user":
-            prompt += f"<|user|>\n{msg['content']}\n"
-        elif msg["role"] == "assistant":
-            prompt += f"<|assistant|>\n"
+        # Generate the prompt
+        prompt = ""
+        for msg in messages:
+            if msg["role"] == "system":
+                prompt += f"<|system|>\n{msg['content']}\n"
+            elif msg["role"] == "user":
+                prompt += f"<|user|>\n{msg['content']}\n"
 
-    print("prompt:",prompt)
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt
-        )
+            print("prompt:", prompt)
 
-        if not response.candidates or not response.candidates[0].content.parts:
-            raise ValueError("Response missing candidates or content parts")
-            # return "error: (Response missing candidates or content parts)"
+            # Make the API call
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt
+            )
 
-        answer = response.candidates[0].content.parts[0].text
+        # Extract the response text
+        if not response or not hasattr(response, 'text'):
+            raise ValueError("Invalid response from Gemini API")
+
+        answer = response.text.strip().lower()
         print("Gemini answer:", answer)
 
-        answer_lower = answer.lower().strip()
-        if 'incorrect' in answer_lower:
+        # Determine the result
+        if 'incorrect' in answer:
             return 'incorrect'
-        elif 'correct' in answer_lower:
+        elif 'correct' in answer:
             return 'correct'
         else:
-            return "error evaluating code"
+            return "error: Unexpected response format"
+            
     except Exception as e:
-        print(e)
+        print("Error in evaluate_code_with_gemini:", str(e))
         return f"error: {str(e)}"
