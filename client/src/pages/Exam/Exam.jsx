@@ -116,8 +116,18 @@ function Exam() {
       if (q.type === 'mcq') {
         completeAnswers[index] = selectedAnswers[index] || null;
       } else if (q.type === 'coding') {
-        const codeAnswer = localStorage.getItem(`code_question_${index + 1}`);
-        completeAnswers[index] = codeAnswer ? codeAnswer : null;
+        const codeResult = localStorage.getItem(`code_question_result_${index}`);
+        if (codeResult) {
+          const parsed = JSON.parse(codeResult);
+          completeAnswers[index] = {
+            type: 'coding',
+            code: parsed.code,
+            status: parsed.status,
+            score: parsed.score
+          };
+        } else {
+          completeAnswers[index] = null;
+        }
       } else {
         completeAnswers[index] = null;
       }
@@ -143,7 +153,7 @@ function Exam() {
           score += 2; // MCQ score
         }
       } else if (q.type === 'coding') {
-        const codeAnswer = localStorage.getItem(`code_question_${index + 1}`);
+        const codeAnswer = localStorage.getItem(`code_question_${index}`);
         if (codeAnswer && codeAnswer.trim() !== "") {
           score += 5;
         }

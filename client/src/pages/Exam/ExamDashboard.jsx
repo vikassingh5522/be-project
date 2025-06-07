@@ -106,7 +106,24 @@ const ExamDashboard = ({ examId }) => {
                           <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm font-medium">
                             Question {questionIdx}
                           </span>
-                          <p className="text-gray-900 flex-1">{answer}</p>
+                          <div className="flex-1">
+                            {answer && typeof answer === 'object' && answer.type === 'coding' ? (
+                              <div className="w-full">
+                                <div>
+                                  <span className="font-semibold">Code:</span>
+                                  <pre className="bg-gray-100 rounded p-2 mt-1 mb-2 overflow-x-auto">{answer.code}</pre>
+                                </div>
+                                <div>
+                                  <span className="font-semibold">Status:</span> {answer.status}
+                                </div>
+                                <div>
+                                  <span className="font-semibold">Score:</span> {answer.score}
+                                </div>
+                              </div>
+                            ) : (
+                              <span>{answer !== null && answer !== undefined ? answer : <span className="text-gray-400 italic">No answer</span>}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}

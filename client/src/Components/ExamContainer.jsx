@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CodeEditor from './CodeEditor';
 
 const ExamContainer = ({
@@ -11,7 +11,29 @@ const ExamContainer = ({
     onSubmit,
 }) => {
     const [showCodeEditor, setShowCodeEditor] = useState(false);
+    const [codingAnswers, setCodingAnswers] = useState({});
     const currentQuestion = questions[currentQuestionIndex];
+
+    // Load saved coding answers from localStorage
+    useEffect(() => {
+        const savedAnswers = {};
+        questions.forEach((q, index) => {
+            if (q.type === 'coding') {
+                const savedCode = localStorage.getItem(`code_question_${index}`);
+                if (savedCode) {
+                    savedAnswers[index] = savedCode;
+                }
+            }
+        });
+        setCodingAnswers(savedAnswers);
+    }, [questions]);
+
+    const handleCodeChange = (questionIndex, code) => {
+        setCodingAnswers(prev => ({
+            ...prev,
+            [questionIndex]: code
+        }));
+    };
 
     const handleCodeSubmissionFeedback = (status, message) => {
         alert(`${status === 'success' ? 'Success: ' : 'Error: '}${message}`);
@@ -45,6 +67,8 @@ const ExamContainer = ({
                     <CodeEditor
                         questionNumber={currentQuestionIndex}
                         question={currentQuestion}
+                        onCodeChange={(code) => handleCodeChange(currentQuestionIndex, code)}
+                        initialCode={codingAnswers[currentQuestionIndex]}
                     />
                 </div>
             ) : (
@@ -86,7 +110,7 @@ const ExamContainer = ({
                 <div className="flex items-center space-x-4">
                     {currentQuestionIndex === questions.length - 1 ? (
                         <button
-                            onClick={onSubmit}
+                            onClick={() => onSubmit({ ...selectedAnswers, codingAnswers })}
                             className="btn-primary bg-success-600 hover:bg-success-700"
                         >
                             Submit Exam

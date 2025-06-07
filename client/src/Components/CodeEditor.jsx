@@ -8,8 +8,8 @@ import 'ace-builds/src-noconflict/theme-github';
 import axios from 'axios';
 import { FaSun, FaMoon } from 'react-icons/fa';
 
-const CodeEditor = ({ questionNumber, question }) => {
-    const [code, setCode] = useState('# Start coding here...');
+const CodeEditor = ({ questionNumber, question, onCodeChange, initialCode }) => {
+    const [code, setCode] = useState(initialCode || '# Start coding here...');
     const [language, setLanguage] = useState('python');
     const [theme, setTheme] = useState('monokai');
     const [notification, setNotification] = useState(null);
@@ -21,6 +21,17 @@ const CodeEditor = ({ questionNumber, question }) => {
         java: 'github',
         c_cpp: 'github',
     };*/
+
+    useEffect(() => {
+        if (initialCode) {
+            setCode(initialCode);
+        } else {
+            const savedCode = localStorage.getItem(`code_question_${questionNumber}`);
+            if (savedCode) {
+                setCode(savedCode);
+            }
+        }
+    }, [questionNumber, initialCode]);
 
     const handleLanguageChange = (e) => {
         const selectedLanguage = e.target.value;
@@ -34,13 +45,8 @@ const CodeEditor = ({ questionNumber, question }) => {
     const handleEditorChange = (newValue) => {
         setCode(newValue);
         localStorage.setItem(`code_question_${questionNumber}`, newValue);
+        onCodeChange?.(newValue);
     };
-    useEffect(() => {
-        const savedCode = localStorage.getItem(`code_question_${questionNumber}`);
-        if (savedCode) {
-            setCode(savedCode);
-        }
-    }, [questionNumber]);
 
     const handleSubmit = async () => {
         try {
@@ -71,18 +77,28 @@ const CodeEditor = ({ questionNumber, question }) => {
             });
 
             if (response.status === 200) {
-                const evaluationResult = response.data.submission.evaluation;
+                const evaluationResult = response.data.submission;
                 let message = '';
                 let type = '';
 
-                if (evaluationResult === 'correct') {
+                // Store evaluation result in localStorage for later use
+                localStorage.setItem(
+                  `code_question_result_${questionNumber}`,
+                  JSON.stringify({
+                    code: cleanedCode,
+                    status: evaluationResult.evaluation,
+                    score: evaluationResult.score
+                  })
+                );
+
+                if (evaluationResult.evaluation === 'correct') {
                     message = 'Great job! Your code is correct.';
                     type = 'success';
-                } else if (evaluationResult === 'incorrect') {
+                } else if (evaluationResult.evaluation === 'incorrect') {
                     message = 'Your code needs some adjustments. Please review the requirements and try again.';
                     type = 'warning';
                 } else {
-                    message = `Evaluation result: ${evaluationResult}`;
+                    message = `Evaluation result: ${evaluationResult.evaluation}`;
                     type = 'error';
                 }
 

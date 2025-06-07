@@ -342,25 +342,16 @@ def exam_submit():
 
     for idx, question in enumerate(questions):
         question_score = 0
+        ans = user_answers.get(str(idx))
         if question.get("type") == "mcq":
             correct = question.get("correctAnswer", "").lower().strip() if question.get("correctAnswer") else ""
-            user_ans = (user_answers.get(str(idx)) or "").lower().strip()
+            user_ans = (ans or "").lower().strip() if ans else ""
             if user_ans and user_ans[0] == correct and correct != "":
                 question_score = question.get("score", 2)
                 computed_score += question_score
         elif question.get("type") == "coding":
-            code_submission = code_submissions.get(str(idx))
-            if code_submission:
-                submission_doc = {
-                    "examId": exam_id,
-                    "username": username,
-                    "questionId": idx,
-                    "code": code_submission,
-                    "timestamp": datetime.datetime.now(datetime.timezone.utc),
-                    "status": "pending"
-                }
-                db["code_submissions"].insert_one(submission_doc)
-                question_score = question.get("score", 5) * 0.5
+            if isinstance(ans, dict) and ans.get("type") == "coding":
+                question_score = ans.get("score", 0) or 0
                 computed_score += question_score
 
         detailed_scores.append({
@@ -486,6 +477,7 @@ def submit_code():
         prompt = data.get('question')                       # matches frontend 'question'
         language = data.get('language')                     # optional, currently unused
         user_id = data.get('user_id', 'anonymous')          # fallback if not sent
+        exam_id = data.get('exam_id')                       # exam ID for updating score
         print('prompt:',prompt[19:])
         if not all([question_id, submitted_code, prompt, language]):
             print({'error': 'Missing required fields'})
@@ -498,9 +490,29 @@ def submit_code():
             "user_id": user_id,
             "question_id": question_id,
             "submitted_code": submitted_code,
-            "evaluation": evaluation_result,
+            "evaluation": evaluation_result['status'],
+            "score": evaluation_result['score'],
             "timestamp": datetime.datetime.now(timezone.utc)
         }
+
+        # Update the exam attempt with the code score
+        if exam_id and user_id:
+            db_collection.update_one(
+                {
+                    "examId": exam_id,
+                    "username": user_id
+                },
+                {
+                    "$set": {
+                        f"answers.{question_id}": {
+                            "type": "coding",
+                            "code": submitted_code,
+                            "status": evaluation_result['status'],
+                            "score": evaluation_result['score']
+                        }
+                    }
+                }
+            )
 
         print(submission_doc)
         # db_collection.insert_one(submission_doc)
