@@ -194,23 +194,33 @@ function Exam() {
 
     try {
       // send your keyLogs to the backend
-      await fetch(`${BASE_URL}/upload/keylogs`, {
+      const token = localStorage.getItem("token");
+      console.log("Sending keylogs:", { keyLogs }); // Debug log
+      const response = await fetch(`${BASE_URL}/upload/keylogs`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ keyLogs })
+      });
+      const result = await response.json(); // Get the response
+      console.log("Keylogs upload response:", result); // Debug log
+
+      await fetch(`${BASE_URL}/upload/keylogs/analyze`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          examId,
+          username: localStorage.getItem("username")
+        })
       });
     } catch (err) {
       console.error("Failed to upload key logs:", err);
     }
-
-    await fetch(`${BASE_URL}/upload/keylogs/analyze`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        examId,
-        username: localStorage.getItem("username")
-      })
-    });
 
     navigate('/dashboard');
   };
