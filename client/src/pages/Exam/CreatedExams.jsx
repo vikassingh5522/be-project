@@ -52,21 +52,34 @@ const CreatedExams = ({ instructor }) => {
     }
   };
 
+  // Helper to compute status
+  const getExamStatus = (exam) => {
+    const now = new Date();
+    const start = new Date(exam.active_start);
+    const end = new Date(exam.active_end);
+    if (now < start) return "draft";
+    if (now > end) return "expired";
+    return "active";
+  };
+
   const filteredAndSortedExams = exams
     .filter(exam => {
-      const matchesSearch = exam.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           exam.subject?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesFilter = filterStatus === "all" || exam.status === filterStatus;
+      const search = searchTerm.toLowerCase();
+      const matchesSearch =
+        (exam.name || "").toLowerCase().includes(search) ||
+        (exam.id || "").toLowerCase().includes(search);
+      const status = getExamStatus(exam);
+      const matchesFilter = filterStatus === "all" || status === filterStatus;
       return matchesSearch && matchesFilter;
     })
     .sort((a, b) => {
       switch (sortBy) {
         case "title":
-          return a.title?.localeCompare(b.title) || 0;
+          return (a.name || "").localeCompare(b.name || "");
         case "created_date":
-          return new Date(b.created_at) - new Date(a.created_at);
+          return new Date(b.active_start) - new Date(a.active_start);
         case "exam_date":
-          return new Date(a.exam_date) - new Date(b.exam_date);
+          return new Date(a.date) - new Date(b.date);
         default:
           return 0;
       }

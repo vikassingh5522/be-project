@@ -26,6 +26,7 @@ import ActiveExamsList from "./pages/Exam/ActiveExamsList"; // New active exams 
 import Notification from "./pages/Notification";
 import {Toaster} from "react-hot-toast";
 import LoadingScreen from "./Components/Loading";
+import ExamResultsOverview from "./pages/Exam/ExamResultsOverview";
 
 // Wrapper to extract examId from URL parameters for ExamDashboard if needed.
 const ExamDashboardWrapper = () => {
@@ -131,6 +132,7 @@ function App() {
           path="/exam/dashboard/:examId"
           element={<ExamDashboardWrapper />}
         />
+        <Route path="/exam/result" element={<ExamResultsOverview />} />
 
         {/* Fallback Route */}
         <Route path="*" element={<Navigate to="/" replace />} />
