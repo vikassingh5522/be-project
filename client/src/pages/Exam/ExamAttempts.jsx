@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { AlertCircle, RefreshCw, Eye, Volume2, Keyboard, Shield, AlertTriangle } from "lucide-react";
+import AudioDiarizationVisualizer from '../../Components/AudioDiarizationVisualizer';
+import { Box } from '@mui/material';
 
 const ExamAttempts = () => {
   const { examId } = useParams();
@@ -8,6 +10,10 @@ const ExamAttempts = () => {
   const [modalFrames, setModalFrames] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [diarizationData, setDiarizationData] = useState(null);
+  const [diarizationLoading, setDiarizationLoading] = useState(false);
+  const [diarizationError, setDiarizationError] = useState(null);
+  const [selectedRecording, setSelectedRecording] = useState(null);
   const BASE_URL = process.env.REACT_APP_BASE_URL;
   
   useEffect(() => {
@@ -33,6 +39,34 @@ const ExamAttempts = () => {
       fetchAttempts();
     }
   }, [examId]);
+
+  const analyzeAudio = async (audioUrl) => {
+    setDiarizationLoading(true);
+    setDiarizationError(null);
+    setDiarizationData(null);
+    try {
+      // Fetch the audio as a Blob
+      const response = await fetch(audioUrl);
+      const blob = await response.blob();
+      // Create a File from the Blob
+      const file = new File([blob], 'exam_audio.wav', { type: blob.type });
+      const formData = new FormData();
+      formData.append('audio_file', file);
+      const apiResponse = await fetch('/api/audio-analysis/analyze-exam-audio', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await apiResponse.json();
+      setDiarizationData(data);
+      if (!data.success) {
+        setDiarizationError(data.error || 'Diarization failed');
+      }
+    } catch (error) {
+      setDiarizationError('Failed to analyze audio');
+    } finally {
+      setDiarizationLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -177,21 +211,53 @@ const ExamAttempts = () => {
                 <div className="mb-4">
                   <h4 className="text-md font-semibold text-gray-900 mb-2">Exam Audio Recording</h4>
                   <div className="space-y-2">
-                    {attempt.recordings.map((recording, index) => (
-                      <div key={index} className="flex items-center space-x-2 bg-gray-50 p-2 rounded">
-                        <Volume2 className="h-5 w-5 text-gray-600" />
-                        <audio
-                          controls
-                          className="flex-1"
-                          src={`${BASE_URL}/upload/audio/${recording.file}`}
-                        >
-                          Your browser does not support the audio element.
-                        </audio>
-                        <span className="text-sm text-gray-600">
-                          {new Date(recording.timestamp).toLocaleString()}
-                        </span>
-                      </div>
-                    ))}
+                    {attempt.recordings.map((recording, index) => {
+                      const audioUrl = `${BASE_URL}/upload/audio/${recording.file}`;
+                      return (
+                        <div key={index} className="flex flex-col space-y-2 bg-gray-50 p-2 rounded">
+                          <div className="flex items-center space-x-2">
+                            <Volume2 className="h-5 w-5 text-gray-600" />
+                            <audio
+                              controls
+                              className="flex-1"
+                              src={audioUrl}
+                            >
+                              Your browser does not support the audio element.
+                            </audio>
+                            <span className="text-sm text-gray-600">
+                              {new Date(recording.timestamp).toLocaleString()}
+                            </span>
+                          </div>
+                          <Box sx={{ mt: 1 }}>
+                            <button
+                              onClick={() => {
+                                setSelectedRecording(audioUrl);
+                                analyzeAudio(audioUrl);
+                              }}
+                              disabled={diarizationLoading}
+                              style={{
+                                padding: '8px 16px',
+                                background: '#1976d2',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: diarizationLoading ? 'not-allowed' : 'pointer'
+                              }}
+                            >
+                              {diarizationLoading && selectedRecording === audioUrl ? 'Analyzing...' : 'Run Diarization'}
+                            </button>
+                            {diarizationError && selectedRecording === audioUrl && (
+                              <div style={{ color: 'red', marginTop: 8 }}>{diarizationError}</div>
+                            )}
+                          </Box>
+                          {diarizationData && selectedRecording === audioUrl && diarizationData.success && (
+                            <Box sx={{ mt: 3 }}>
+                              <AudioDiarizationVisualizer diarizationData={diarizationData} />
+                            </Box>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

@@ -10,6 +10,7 @@ from database import init_db
 import config
 import os
 from flask_mail import Mail
+from audio_analysis.routes import audio_analysis
 
 def create_app(config_class=config):
     app = Flask(__name__)
@@ -48,6 +49,7 @@ def create_app(config_class=config):
     app.register_blueprint(exam_bp, url_prefix='/exam')
     app.register_blueprint(upload_bp, url_prefix='/upload')
     app.register_blueprint(mobile_bp, url_prefix='/mobile')
+    app.register_blueprint(audio_analysis, url_prefix='/api/audio-analysis')
     
     return app
 
