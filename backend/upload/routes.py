@@ -137,6 +137,7 @@ def upload_audio():
     original_filename = secure_filename(audio_file.filename)
     unique_filename = f"{exam_id}_{username}_{int(datetime.datetime.now().timestamp())}_{original_filename}"
     file_path = os.path.join(Config.AUDIO_UPLOAD_FOLDER, unique_filename)
+    print(f"[AUDIO UPLOAD] Saving audio file to: {file_path}")
     audio_file.save(file_path)
 
     # Save basic recording entry to MongoDB
@@ -144,10 +145,14 @@ def upload_audio():
         "file": unique_filename,
         "timestamp": datetime.datetime.now(datetime.timezone.utc)
     }
-    db_collection.update_one(
+    result = db_collection.update_one(
         {"examId": exam_id, "username": username},
-        {"$push": {"recordings": recording_entry}}
+        {"$set": {"recordings": [recording_entry]}}
     )
+    if result.matched_count == 0:
+        print(f"[AUDIO UPLOAD] No attempt found for examId={exam_id}, username={username}")
+        return jsonify({"success": False, "message": "Attempt not found in DB"}), 404
+    print(f"[AUDIO UPLOAD] Updated attempt with audio recording: {recording_entry}")
 
     # Run analysis in background
     from threading import Thread

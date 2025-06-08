@@ -197,7 +197,7 @@ const ExamDashboard = ({ examId }) => {
                           className="w-full"
                           style={{ height: '32px' }}
                         >
-                          <source src={`${BASE_URL}/audio/${recording.file}`} type="audio/webm" />
+                          <source src={`${BASE_URL}/upload/audio/${recording.file}`} type="audio/webm" />
                           Your browser does not support the audio element.
                         </audio>
                       </div>

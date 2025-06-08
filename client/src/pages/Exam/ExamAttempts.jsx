@@ -175,7 +175,7 @@ const ExamAttempts = () => {
               {/* Audio Recordings */}
               {attempt.recordings && attempt.recordings.length > 0 && (
                 <div className="mb-4">
-                  <h4 className="text-md font-semibold text-gray-900 mb-2">Audio Recordings</h4>
+                  <h4 className="text-md font-semibold text-gray-900 mb-2">Exam Audio Recording</h4>
                   <div className="space-y-2">
                     {attempt.recordings.map((recording, index) => (
                       <div key={index} className="flex items-center space-x-2 bg-gray-50 p-2 rounded">

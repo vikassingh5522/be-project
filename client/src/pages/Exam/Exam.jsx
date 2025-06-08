@@ -136,9 +136,10 @@ function Exam() {
   };
 
   const handleSubmit = async () => {
-    // Optionally trigger audio upload before submitting exam results.
     if (audioRecorderRef.current) {
-      await audioRecorderRef.current.uploadRecording();
+      console.log("Uploading audio...");
+      const audioResult = await audioRecorderRef.current.uploadRecording();
+      console.log("Audio upload result:", audioResult);
     }
 
     const timeTaken = calculateTimeTaken();
@@ -397,6 +398,7 @@ function Exam() {
       </>
     )}
     {isFullscreenPromptVisible && <FullscreenPrompt onReenter={handleReenterFullscreen} />}
+    <AudioRecorder ref={audioRecorderRef} examId={examId} token={localStorage.getItem("token")} />
   </div>
 );
 
