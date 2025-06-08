@@ -2,7 +2,77 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mobile Exam Monitor</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #2c3e50;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .status-box {
+      background-color: #e8f5e9;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    .warning-box {
+      background-color: #fff3e0;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    .instructions {
+      background-color: #e3f2fd;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    button {
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+      margin: 10px 0;
+    }
+    button:hover {
+      background-color: #1976d2;
+    }
+    .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+    .active {
+      background-color: #4caf50;
+    }
+    .inactive {
+      background-color: #f44336;
+    }
+    #statusMsg {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
   <script>
     // Utility function to decode a JWT token payload.
     function parseJwt (token) {
@@ -42,17 +112,29 @@
         event: eventType,
         tabFocus: document.hasFocus(),
         screenWidth: window.innerWidth,
-        screenHeight: window.innerHeight
+        screenHeight: window.innerHeight,
+        batteryLevel: navigator.getBattery ? navigator.getBattery().then(battery => battery.level) : null,
+        networkType: navigator.connection ? navigator.connection.effectiveType : 'unknown'
       };
 
-      fetch('http://192.168.193.251:5000/mobile/heartbeat', {
+      fetch('/mobile/heartbeat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
       .then(response => response.json())
-      .then(data => console.log('Mobile event logged:', data))
-      .catch(err => console.error('Error logging mobile event:', err));
+      .then(data => {
+        console.log('Mobile event logged:', data);
+        if (eventType === 'heartbeat') {
+          updateLastHeartbeat();
+        }
+      })
+      .catch(err => {
+        console.error('Error logging mobile event:', err);
+        document.getElementById('monitorStatus').classList.remove('active');
+        document.getElementById('monitorStatus').classList.add('inactive');
+        document.getElementById('statusText').textContent = 'Connection Lost';
+      });
     }
 
     // Function called when the user taps the "Confirm Presence" button.
@@ -60,9 +142,14 @@
       const payload = {
         token: token,
         timestamp: new Date().toISOString(),
-        event: 'confirm'
+        event: 'confirm',
+        screenWidth: window.innerWidth,
+        screenHeight: window.innerHeight,
+        networkType: navigator.connection ? navigator.connection.effectiveType : 'unknown',
+        batteryLevel: navigator.getBattery ? navigator.getBattery().then(battery => battery.level) : null
       };
-      fetch('http://192.168.193.251:5000/mobile/confirm', {
+      
+      fetch('/mobile/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -70,26 +157,57 @@
       .then(response => response.json())
       .then(data => {
         console.log('Mobile confirmation logged:', data);
-        alert("Presence confirmed. You may now proceed with your exam.");
-        document.getElementById('confirmBtn').style.display = 'none';
-        document.getElementById('statusMsg').innerText = "Presence confirmed. You may now proceed with your exam.";
+        if (data.success) {
+          alert("Presence confirmed. You may now proceed with your exam.");
+          document.getElementById('confirmBtn').style.display = 'none';
+          document.getElementById('statusMsg').innerText = "Presence confirmed. You may now proceed with your exam.";
+          
+          // Start sending heartbeats after confirmation
+          setInterval(() => {
+            sendMobileEvent('heartbeat');
+          }, 10000);
+        } else {
+          alert("Failed to confirm presence: " + (data.message || "Unknown error"));
+        }
       })
-      .catch(err => console.error('Error confirming mobile presence:', err));
+      .catch(err => {
+        console.error('Error confirming mobile presence:', err);
+        alert("Failed to confirm presence. Please try again.");
+      });
     }
 
-    // Send a heartbeat every 5 seconds.
-    setInterval(() => {
-      sendMobileEvent('heartbeat');
-    }, 10000);
+    // Update last heartbeat time
+    function updateLastHeartbeat() {
+      const now = new Date();
+      document.getElementById('lastHeartbeat').textContent = now.toLocaleTimeString();
+    }
 
-    // Monitor focus events.
+    // Update status indicator
+    function updateStatusIndicator(focused) {
+      const statusIndicator = document.getElementById('monitorStatus');
+      const statusText = document.getElementById('statusText');
+      
+      if (focused) {
+        statusIndicator.classList.remove('inactive');
+        statusIndicator.classList.add('active');
+        statusText.textContent = 'Active';
+      } else {
+        statusIndicator.classList.remove('active');
+        statusIndicator.classList.add('inactive');
+        statusText.textContent = 'Inactive - Warning';
+      }
+    }
+
+    // Enhanced focus/blur handlers
     window.addEventListener('focus', () => {
-      console.log("Window gained focus. Dimensions:", window.innerWidth + "x" + window.innerHeight);
+      console.log("Window gained focus");
+      updateStatusIndicator(true);
       sendMobileEvent('focus');
     });
 
     window.addEventListener('blur', () => {
-      console.log("Window lost focus.");
+      console.log("Window lost focus");
+      updateStatusIndicator(false);
       sendMobileEvent('blur');
     });
 
@@ -108,17 +226,48 @@
       console.log("Document visibility changed. Current state:", document.visibilityState);
       sendMobileEvent('visibilitychange');
     });
+
+    // Initialize status
+    updateStatusIndicator(document.hasFocus());
+    updateLastHeartbeat();
+
+    // Display the exam ID
+    document.getElementById('examIdDisplay').innerText = examId || "Not available";
   </script>
 </head>
 <body>
-  <h1>Mobile Exam Monitor</h1>
-  <p>This page monitors your mobile device during the exam. Please do not interact with it.</p>
-  <p><strong>Exam ID:</strong> <span id="examIdDisplay"></span></p>
-  <button id="confirmBtn" onclick="confirmPresence()">Confirm Presence</button>
-  <p id="statusMsg"></p>
-  <script>
-    // Display the exam ID on the page for cross-checking.
-    document.getElementById('examIdDisplay').innerText = examId || "Not available";
-  </script>
+  <div class="container">
+    <h1>Mobile Exam Monitor</h1>
+    
+    <div class="instructions">
+      <h3>Important Instructions:</h3>
+      <ol>
+        <li>Keep this page open during the entire exam duration</li>
+        <li>Do not switch to other apps or browser tabs</li>
+        <li>Do not minimize or close this window</li>
+        <li>Keep your device screen on</li>
+        <li>Ensure stable internet connection</li>
+      </ol>
+    </div>
+
+    <div class="status-box">
+      <h3>Monitoring Status</h3>
+      <p><span class="status-indicator active" id="monitorStatus"></span> <span id="statusText">Active</span></p>
+      <p><strong>Exam ID:</strong> <span id="examIdDisplay"></span></p>
+      <p><strong>Last Heartbeat:</strong> <span id="lastHeartbeat">-</span></p>
+    </div>
+
+    <div class="warning-box">
+      <h3>⚠️ Important Warnings</h3>
+      <ul>
+        <li>Any attempt to switch apps or tabs will be logged</li>
+        <li>Screen size changes will be detected</li>
+        <li>Multiple violations may result in exam termination</li>
+      </ul>
+    </div>
+
+    <button id="confirmBtn" onclick="confirmPresence()">Confirm Device Presence</button>
+    <p id="statusMsg"></p>
+  </div>
 </body>
 </html>

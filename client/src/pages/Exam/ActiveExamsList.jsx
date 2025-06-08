@@ -20,12 +20,18 @@ const ActiveExamsList = ({ instructor }) => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("grid");
+  const [examFilter, setExamFilter] = useState("active"); // 'active' or 'all'
+  const [allExams, setAllExams] = useState([]);
   const navigate = useNavigate();
   const BASE_URL = process.env.REACT_APP_BASE_URL;
   
   useEffect(() => {
-    fetchExams();
-  }, [instructor]);
+    if (examFilter === "active") {
+      fetchExams();
+    } else {
+      fetchAllExams();
+    }
+  }, [instructor, examFilter]);
 
   const fetchExams = async () => {
     try {
@@ -52,7 +58,26 @@ const ActiveExamsList = ({ instructor }) => {
     }
   };
 
-  const filteredExams = activeExams.filter(exam =>
+  const fetchAllExams = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetch(`${BASE_URL}/exam/created?instructor=${instructor}`);
+      const data = await res.json();
+      if (data.success) {
+        setAllExams(data.exams);
+      } else {
+        setError(data.message || "Failed to fetch exams");
+      }
+    } catch (err) {
+      console.error("Error fetching all exams:", err);
+      setError("Failed to load exams. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredExams = (examFilter === "active" ? activeExams : allExams).filter(exam =>
     exam.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     exam.id?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -79,7 +104,7 @@ const ActiveExamsList = ({ instructor }) => {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Exams</h3>
             <p className="text-gray-600 mb-4">{error}</p>
             <button
-              onClick={fetchExams}
+              onClick={() => fetchExams()}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto"
             >
               <RefreshCw className="h-4 w-4" />
@@ -99,8 +124,8 @@ const ActiveExamsList = ({ instructor }) => {
           <div className="flex items-center space-x-3">
             <Clock className="h-8 w-8 text-blue-600" />
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Active Exams</h2>
-              <p className="text-gray-600">Monitor currently running exams</p>
+              <h2 className="text-2xl font-bold text-gray-900">{examFilter === "active" ? "Active Exams" : "All Exams"}</h2>
+              <p className="text-gray-600">{examFilter === "active" ? "Monitor currently running exams" : "View all exams you have created"}</p>
             </div>
           </div>
           <button
@@ -118,8 +143,8 @@ const ActiveExamsList = ({ instructor }) => {
             <div className="flex items-center space-x-3">
               <BookOpen className="h-8 w-8 text-blue-600" />
               <div>
-                <p className="text-sm text-blue-600 font-medium">Total Active</p>
-                <p className="text-2xl font-bold text-blue-700">{activeExams.length}</p>
+                <p className="text-sm text-blue-600 font-medium">{examFilter === "active" ? "Total Active" : "Total Exams"}</p>
+                <p className="text-2xl font-bold text-blue-700">{examFilter === "active" ? activeExams.length : allExams.length}</p>
               </div>
             </div>
           </div>
@@ -129,7 +154,7 @@ const ActiveExamsList = ({ instructor }) => {
               <div>
                 <p className="text-sm text-green-600 font-medium">Total Students</p>
                 <p className="text-2xl font-bold text-green-700">
-                  {activeExams.reduce((total, exam) => total + (exam.totalStudents || 0), 0)}
+                  {(examFilter === "active" ? activeExams : allExams).reduce((total, exam) => total + (exam.totalStudents || 0), 0)}
                 </p>
               </div>
             </div>
@@ -140,13 +165,12 @@ const ActiveExamsList = ({ instructor }) => {
               <div>
                 <p className="text-sm text-purple-600 font-medium">Average Duration</p>
                 <p className="text-2xl font-bold text-purple-700">
-                  {activeExams.length > 0
+                  {(examFilter === "active" ? activeExams : allExams).length > 0
                     ? Math.round(
-                        activeExams.reduce((total, exam) => total + (exam.duration || 0), 0) /
-                          activeExams.length
+                        (examFilter === "active" ? activeExams : allExams).reduce((total, exam) => total + (exam.duration || 0), 0) /
+                          (examFilter === "active" ? activeExams : allExams).length
                       )
-                    : 0}{" "}
-                  min
+                    : 0} min
                 </p>
               </div>
             </div>
@@ -185,6 +209,21 @@ const ActiveExamsList = ({ instructor }) => {
             </button>
           </div>
         </div>
+
+        <div className="flex items-center space-x-4 mb-6">
+          <button
+            className={`px-4 py-2 rounded-lg font-semibold focus:outline-none transition-colors ${examFilter === "active" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-blue-100"}`}
+            onClick={() => setExamFilter("active")}
+          >
+            Active Exams
+          </button>
+          <button
+            className={`px-4 py-2 rounded-lg font-semibold focus:outline-none transition-colors ${examFilter === "all" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-blue-100"}`}
+            onClick={() => setExamFilter("all")}
+          >
+            All Exams
+          </button>
+        </div>
       </div>
 
       {/* Exams Grid/List */}
@@ -206,12 +245,14 @@ const ActiveExamsList = ({ instructor }) => {
         <div className="bg-white rounded-lg shadow-sm p-12 text-center">
           <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-900 mb-2">
-            {searchTerm ? "No exams found" : "No active exams"}
+            {searchTerm ? "No exams found" : examFilter === "active" ? "No active exams" : "No exams created yet"}
           </h3>
           <p className="text-gray-600 mb-6">
             {searchTerm
               ? "Try adjusting your search criteria"
-              : "Create a new exam to get started"}
+              : examFilter === "active"
+              ? "Create a new exam to get started"
+              : "Create an exam to see it here"}
           </p>
           {!searchTerm && (
             <button

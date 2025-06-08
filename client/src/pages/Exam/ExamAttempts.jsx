@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { AlertCircle, RefreshCw, Eye, Volume2, Keyboard, Shield, AlertTriangle } from "lucide-react";
 import AudioDiarizationVisualizer from '../../Components/AudioDiarizationVisualizer';
+import MobileMonitoringAnalysis from './MobileMonitoringAnalysis';
 import { Box } from '@mui/material';
 
 const ExamAttempts = () => {
@@ -261,6 +262,12 @@ const ExamAttempts = () => {
                   </div>
                 </div>
               )}
+
+              {/* Mobile Monitoring Analysis */}
+              <div className="mt-8">
+                <h4 className="text-md font-semibold text-gray-900 mb-4">Mobile Device Monitoring</h4>
+                <MobileMonitoringAnalysis examId={examId} />
+              </div>
             </div>
           ))}
         </div>

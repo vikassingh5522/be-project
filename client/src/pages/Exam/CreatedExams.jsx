@@ -15,7 +15,7 @@ import {
   List
 } from "lucide-react";
 
-const CreatedExams = ({ instructor }) => {
+const CreatedExams = ({ instructor, onExamSelect, showResults = false }) => {
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -92,6 +92,12 @@ const CreatedExams = ({ instructor }) => {
       case "completed": return "text-blue-600 bg-blue-100";
       case "expired": return "text-red-600 bg-red-100";
       default: return "text-gray-600 bg-gray-100";
+    }
+  };
+
+  const handleExamClick = (exam) => {
+    if (showResults && onExamSelect) {
+      onExamSelect(exam._id);
     }
   };
 
@@ -250,42 +256,57 @@ const CreatedExams = ({ instructor }) => {
         </div>
       </div>
 
-      {/* Exams Grid/List */}
-      {filteredAndSortedExams.length > 0 ? (
-        <div className={`${
-          viewMode === "grid" 
-            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" 
-            : "space-y-4"
-        }`}>
-          {filteredAndSortedExams.map((exam) => (
-            <div key={exam.id} className={`${viewMode === "list" ? "w-full" : ""}`}>
-              <ExamCardTeacher exam={exam} viewMode={viewMode} />
+      {/* Exam List */}
+      <div className={`grid ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"} gap-6`}>
+        {filteredAndSortedExams.map((exam) => (
+          <div 
+            key={exam._id} 
+            className={`bg-white rounded-lg shadow-sm p-6 transition-all hover:shadow-md ${
+              showResults ? 'cursor-pointer hover:bg-gray-50' : ''
+            }`}
+            onClick={() => handleExamClick(exam)}
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">{exam.name}</h3>
+                <p className="text-sm text-gray-600 mt-1">{exam.description}</p>
+              </div>
+              {showResults && (
+                <button 
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onExamSelect(exam._id);
+                  }}
+                >
+                  View Analysis
+                </button>
+              )}
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-          <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">
-            {searchTerm || filterStatus !== "all" ? "No exams found" : "No exams created yet"}
-          </h3>
-          <p className="text-gray-600 mb-6">
-            {searchTerm || filterStatus !== "all" 
-              ? "Try adjusting your search or filter criteria"
-              : "Get started by creating your first exam"
-            }
-          </p>
-          {(!searchTerm && filterStatus === "all") && (
-            <button
-              onClick={() => navigate("/dashboard/create-exam")}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto"
-            >
-              <Plus className="h-5 w-5" />
-              <span>Create Your First Exam</span>
-            </button>
-          )}
-        </div>
-      )}
+
+            <div className="space-y-3">
+              <div className="flex items-center text-sm text-gray-600">
+                <Calendar className="h-4 w-4 mr-2" />
+                <span>{new Date(exam.date).toLocaleDateString()}</span>
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <Clock className="h-4 w-4 mr-2" />
+                <span>{exam.duration} minutes</span>
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <Users className="h-4 w-4 mr-2" />
+                <span>{exam.participants || 0} participants</span>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(getExamStatus(exam))}`}>
+                {getExamStatus(exam)}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

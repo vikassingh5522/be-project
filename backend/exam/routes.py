@@ -280,7 +280,11 @@ def exam_submit():
         "cursor_warnings": 0,
         "suspicious_frames": 0,
         "abnormal_audio": 0,
-        "tab_switches": 0
+        "tab_switches": 0,
+        "mobile_focus_violations": 0,
+        "mobile_screen_changes": 0,
+        "mobile_network_changes": 0,
+        "mobile_battery_issues": 0
     }
 
     # Get suspicious frames count
@@ -294,43 +298,72 @@ def exam_submit():
     # Calculate cursor warning impact
     cheating_factors["cursor_warnings"] = cursor_warning_count
     if cursor_warning_count > 10:
-        cheating_score += 20
+        cheating_score += 15
     elif cursor_warning_count > 5:
-        cheating_score += 10
+        cheating_score += 8
     elif cursor_warning_count > 0:
-        cheating_score += 5
+        cheating_score += 3
 
     # Calculate suspicious frames impact
     if len(suspicious_frames) > 5:
-        cheating_score += 30
+        cheating_score += 20
     elif len(suspicious_frames) > 2:
-        cheating_score += 15
+        cheating_score += 10
     elif len(suspicious_frames) > 0:
         cheating_score += 5
 
     # Calculate abnormal audio impact
     cheating_factors["abnormal_audio"] = len(abnormal_audios)
     if len(abnormal_audios) > 3:
-        cheating_score += 25
-    elif len(abnormal_audios) > 1:
-        cheating_score += 10
-    elif len(abnormal_audios) > 0:
-        cheating_score += 5
-
-    # Get tab switch count from mobile logs
-    mobile_logs = db["mobile_activity_logs"].find({
-        "examId": exam_id,
-        "username": username,
-        "event": "visibilitychange"
-    })
-    tab_switches = len(list(mobile_logs))
-    cheating_factors["tab_switches"] = tab_switches
-    if tab_switches > 5:
-        cheating_score += 25
-    elif tab_switches > 2:
         cheating_score += 15
-    elif tab_switches > 0:
+    elif len(abnormal_audios) > 1:
+        cheating_score += 8
+    elif len(abnormal_audios) > 0:
+        cheating_score += 3
+
+    # Get mobile monitoring data
+    mobile_logs = list(db["mobile_activity_logs"].find({
+        "examId": exam_id,
+        "username": username
+    }))
+
+    # Calculate mobile focus violations
+    focus_violations = len([log for log in mobile_logs if log.get("event") in ["blur", "visibilitychange"]])
+    cheating_factors["mobile_focus_violations"] = focus_violations
+    if focus_violations > 5:
+        cheating_score += 15
+    elif focus_violations > 2:
+        cheating_score += 8
+    elif focus_violations > 0:
+        cheating_score += 3
+
+    # Calculate mobile screen changes
+    screen_changes = len([log for log in mobile_logs if log.get("event") == "resize"])
+    cheating_factors["mobile_screen_changes"] = screen_changes
+    if screen_changes > 5:
+        cheating_score += 10
+    elif screen_changes > 2:
         cheating_score += 5
+    elif screen_changes > 0:
+        cheating_score += 2
+
+    # Calculate mobile network changes
+    network_changes = len([log for log in mobile_logs if log.get("event") == "networkchange"])
+    cheating_factors["mobile_network_changes"] = network_changes
+    if network_changes > 3:
+        cheating_score += 10
+    elif network_changes > 1:
+        cheating_score += 5
+    elif network_changes > 0:
+        cheating_score += 2
+
+    # Calculate mobile battery issues
+    battery_issues = len([log for log in mobile_logs if log.get("event") == "battery" and log.get("batteryLevel", 1) < 0.2])
+    cheating_factors["mobile_battery_issues"] = battery_issues
+    if battery_issues > 2:
+        cheating_score += 5
+    elif battery_issues > 0:
+        cheating_score += 2
 
     # Cap the cheating score at 100
     cheating_score = min(cheating_score, 100)
