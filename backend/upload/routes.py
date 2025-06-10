@@ -11,6 +11,7 @@ import jwt
 from database import init_db
 import datetime
 from upload.utils import allowed_file, detect_objects
+from upload.s3utils import upload_to_s3
 from config import Config
 import os
 from audio_analysis.speaker_diarization import run_speaker_analysis_and_store
@@ -87,9 +88,16 @@ def upload_file():
         return jsonify({"success": False, "message": "Unsupported file type. Only .txt and .docx are allowed."}), 400
 
     filename = secure_filename(file.filename)
-    filepath = os.path.join(Config['UPLOAD_FOLDER'], filename)
+    filepath = os.path.join(Config.UPLOAD_FOLDER, filename)
     file.save(filepath)
+    
     try:
+        # Upload to S3
+        file_url = upload_to_s3(filepath, 'uploads')
+        
+        # Remove local file after S3 upload
+        os.remove(filepath)
+        
         exam_name = request.form.get('name')
         exam_duration = request.form.get('duration')
         exam_date = request.form.get('date')
@@ -102,18 +110,21 @@ def upload_file():
                 "name": exam_name,
                 "duration": exam_duration,
                 "date": exam_date,
-                "questions": questions
+                "questions": questions,
+                "file_url": file_url  # Store the S3 URL
             }
             # Store exam details in the exams collection
             db_exams.insert_one(exam)
-            return jsonify({"success": True, "examId": uid}), 200
+            return jsonify({"success": True, "examId": uid, "file_url": file_url}), 200
         else:
             result = parse_questions(filepath, filename)
             questions = result["questions"]
-            return jsonify({"success": True, "questions": questions}), 200
+            return jsonify({"success": True, "questions": questions, "file_url": file_url}), 200
     except Exception as e:
+        # Clean up local file in case of error
+        if os.path.exists(filepath):
+            os.remove(filepath)
         return jsonify({"success": False, "message": f"Error processing file: {str(e)}"}), 500
-    
 
 @upload_bp.route('/audio', methods=['POST'])
 def upload_audio():

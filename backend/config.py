@@ -22,3 +22,9 @@ class Config:
         
     MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10 MB
     ALLOWED_EXTENSIONS = {'.txt', '.docx'}
+
+    # S3 configuration
+    AWS_BUCKET_NAME = os.getenv('AWS_BUCKET_NAME')
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+    AWS_DEFAULT_REGION = os.getenv('AWS_DEFAULT_REGION')
